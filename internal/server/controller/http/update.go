@@ -2,8 +2,8 @@ package http
 
 import (
 	"errors"
-	"github.com/Kotletta-TT/MonoGo/internal/infrastructure/repository"
-	"github.com/Kotletta-TT/MonoGo/internal/usecase"
+	"github.com/Kotletta-TT/MonoGo/internal/server/infrastructure/repository"
+	"github.com/Kotletta-TT/MonoGo/internal/server/usecase"
 	"log"
 	"net/http"
 )
@@ -27,7 +27,7 @@ func (uh UpdateHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	metric, err := usecase.Parse(req)
+	_, err := usecase.Parse(req)
 	if err != nil {
 		switch {
 		case errors.As(err, &incorrectTypeMetrics) || errors.As(err, &incorrectValueMetrics):
@@ -35,11 +35,11 @@ func (uh UpdateHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		case errors.As(err, &noNameMetric):
 			res.WriteHeader(http.StatusNotFound)
 		default:
-			res.WriteHeader(http.StatusBadGateway)
+			res.WriteHeader(http.StatusNotFound)
 		}
 		log.Println(err)
 		return
 	}
-	uh.repo.StoreMetric(*metric)
+
 	res.WriteHeader(http.StatusOK)
 }

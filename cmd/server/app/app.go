@@ -1,8 +1,8 @@
 package app
 
 import (
-	router "github.com/Kotletta-TT/MonoGo/internal/controller/http"
-	"github.com/Kotletta-TT/MonoGo/internal/infrastructure/repository"
+	router "github.com/Kotletta-TT/MonoGo/internal/server/controller/http"
+	"github.com/Kotletta-TT/MonoGo/internal/server/infrastructure/repository"
 	"log"
 	"net/http"
 )

@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/Kotletta-TT/MonoGo/internal/infrastructure/repository"
+	"github.com/Kotletta-TT/MonoGo/internal/server/infrastructure/repository"
 	"net/http"
 )
 

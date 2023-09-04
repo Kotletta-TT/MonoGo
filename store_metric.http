@@ -1,0 +1,33 @@
+POST http://localhost:8080/update/gauge/gauge_metric/100.0/
+Content-Type: text/plain
+###
+POST http://localhost:8080/update/gauge/gauge_metric/100.0
+Content-Type: text/plain
+###
+POST http://localhost:8080/update/gauge/gauge_metric/100
+Content-Type: text/plain
+###
+POST http://localhost:8080/update/gauge/gauge_metric/0.0
+Content-Type: text/plain
+###
+POST http://localhost:8080/update/gauge/gauge_metric/0
+Content-Type: text/plain
+###
+POST http://localhost:8080/update/counter/counter_metric/100.0/
+Content-Type: text/plain
+###
+POST http://localhost:8080/update/counter/counter_metric/100.0
+Content-Type: text/plain
+###
+POST http://localhost:8080/update/counter/counter_metric/100
+Content-Type: text/plain
+###
+POST http://localhost:8080/update/counter/counter_metric/0.0
+Content-Type: text/plain
+###
+POST http://localhost:8080/update/counter/counter_metric/0
+Content-Type: text/plain
+###
+POST http://localhost:8080/update/a/b/c/
+Content-Type: text/plain
+###
