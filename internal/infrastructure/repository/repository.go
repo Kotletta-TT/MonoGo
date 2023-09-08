@@ -1,29 +1,86 @@
 package repository
 
 import (
+	"fmt"
 	"github.com/Kotletta-TT/MonoGo/internal/entity"
+	"github.com/Kotletta-TT/MonoGo/internal/utils"
+	"log"
+	"sync"
 )
 
 type Repository interface {
-	GetMetricByName(name string) (entity.Metric, error)
-	StoreMetric(metric entity.Metric)
+	GetMetric(name string) (*entity.CustomMetric, error)
+	StoreGaugeMetric(key string, value interface{})
+	StoreCounterMetric(key string, value interface{})
+	GetAllMetrics() map[string]*entity.CustomMetric
+	PrintAllMetrics()
 }
 
 type MemRepo struct {
-	repo map[string]entity.Metric
+	mu   *sync.Mutex
+	repo map[string]*entity.CustomMetric
 }
 
-func NewMemRepo() MemRepo {
-	return MemRepo{
-		repo: make(map[string]entity.Metric),
+func NewMemRepo() Repository {
+	log.Println("Create Mem Repository")
+	return &MemRepo{
+		mu:   &sync.Mutex{},
+		repo: make(map[string]*entity.CustomMetric),
 	}
 }
 
-func (mr MemRepo) GetMetricByName(name string) (entity.Metric, error) {
-	//TODO обработка отсутсвия метрики
-	return mr.repo[name], nil
+func (mr *MemRepo) GetMetric(name string) (*entity.CustomMetric, error) {
+	mr.mu.Lock()
+	defer mr.mu.Unlock()
+	m, ok := mr.repo[name]
+	if !ok {
+		return nil, fmt.Errorf("metric %s not found", name)
+	}
+	return m, nil
 }
 
-func (mr MemRepo) StoreMetric(metric entity.Metric) {
-	mr.repo[metric.Name] = metric
+func (mr *MemRepo) StoreGaugeMetric(key string, value interface{}) {
+	floatValue := utils.GetFloat64(value)
+	mr.mu.Lock()
+	defer mr.mu.Unlock()
+	if _, ok := mr.repo[key]; !ok {
+		mr.repo[key] = entity.NewCustomGaugeMetric(key, floatValue)
+		return
+	}
+	mr.repo[key].UpdateGageValue(floatValue)
+}
+
+func (mr *MemRepo) StoreCounterMetric(key string, value interface{}) {
+	intValue := utils.GetInt64(value)
+	mr.mu.Lock()
+	defer mr.mu.Unlock()
+	if _, ok := mr.repo[key]; !ok {
+		mr.repo[key] = entity.NewCustomCounterMetric(key, intValue)
+		return
+	}
+	mr.repo[key].UpdateCounterValue(intValue)
+}
+
+func (mr *MemRepo) PrintAllMetrics() {
+	mr.mu.Lock()
+	defer mr.mu.Unlock()
+	log.Printf("Stored metrics in repo: %d\n", len(mr.repo))
+	for _, metric := range mr.repo {
+		switch metric.GetMetricKind() {
+		case entity.KindGauge:
+			log.Printf("Name:%s Value:%v Kind: Gauge\n", metric.Name, metric.GetGaugeValue())
+		case entity.KindCounter:
+			log.Printf("Name:%s Value:%v Kind: Gauge\n", metric.Name, metric.GetCounterValue())
+		}
+	}
+}
+
+func (mr *MemRepo) GetAllMetrics() map[string]*entity.CustomMetric {
+	mr.mu.Lock()
+	defer mr.mu.Unlock()
+	copyRepo := make(map[string]*entity.CustomMetric, len(mr.repo))
+	for k, v := range mr.repo {
+		copyRepo[k] = v
+	}
+	return copyRepo
 }

@@ -16,7 +16,7 @@ const (
 
 func validateMetric(partsMetric []string) (string, string, any, error) {
 	typeMetric := partsMetric[1]
-	if len(partsMetric[2]) < 1 {
+	if len(partsMetric) < 3 || len(partsMetric[2]) < 1 {
 		return "", "", "", NoNameMetric{}
 	}
 	nameMetric := partsMetric[2]
@@ -38,20 +38,20 @@ func validateMetric(partsMetric []string) (string, string, any, error) {
 	}
 }
 
-func parseUrl(url *url.URL) (typeMetric, nameMetric string, valueMetric any, err error) {
-	trimUrl := strings.Trim(url.Path, "/")
-	partsUrl := strings.Split(trimUrl, "/")
-	if len(partsUrl) != 4 {
-		return "", "", "", fmt.Errorf("parsing err: expected len == 4 got: %d", len(partsUrl))
+func parseURL(url *url.URL) (typeMetric, nameMetric string, valueMetric any, err error) {
+	trimURL := strings.Trim(url.Path, "/")
+	partsURL := strings.Split(trimURL, "/")
+	if len(partsURL) < 2 {
+		return "", "", "", fmt.Errorf("parsing err: parts less than 2: %d", len(partsURL))
 	}
-	return validateMetric(partsUrl)
+	return validateMetric(partsURL)
 }
 
-func Parse(req *http.Request) (*entity.Metric, error) {
-	typeMetric, nameMetric, valueMetric, err := parseUrl(req.URL)
+func Parse(req *http.Request) (*entity.CustomMetric, error) {
+	typeMetric, nameMetric, valueMetric, err := parseURL(req.URL)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println(typeMetric, nameMetric, valueMetric)
-	return &entity.Metric{}, nil
+	return &entity.CustomMetric{}, nil
 }
