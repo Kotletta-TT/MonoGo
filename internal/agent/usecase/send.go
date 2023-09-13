@@ -33,16 +33,16 @@ func (h *HTTPSender) compileURL(typeMetric, nameMetric, value string) string {
 }
 
 func (h *HTTPSender) Send() {
-	var sendUrl string
+	var sendURL string
 	metrics := h.repo.GetMetrics()
 	for k, v := range metrics {
 		switch v.(type) {
 		case float64:
-			sendUrl = h.compileURL(GAUGE, k, fmt.Sprintf("%f", v))
+			sendURL = h.compileURL(GAUGE, k, fmt.Sprintf("%f", v))
 		case int64:
-			sendUrl = h.compileURL(COUNTER, k, fmt.Sprintf("%d", v))
+			sendURL = h.compileURL(COUNTER, k, fmt.Sprintf("%d", v))
 		}
-		_, err := h.client.R().Post(sendUrl)
+		_, err := h.client.R().Post(sendURL)
 		if err != nil {
 			panic(err)
 		}
