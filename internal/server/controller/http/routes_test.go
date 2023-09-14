@@ -2,7 +2,7 @@ package http
 
 import (
 	"bytes"
-	"github.com/Kotletta-TT/MonoGo/internal/server/infrastructure/repository"
+	"github.com/Kotletta-TT/MonoGo/internal/server/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -23,7 +23,7 @@ func TestListMetrics(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := repository.New()
+			repo := storage.New()
 			r := gin.Default()
 			r.GET("/", ListMetrics(repo))
 			req := httptest.NewRequest(http.MethodGet, "/", nil)

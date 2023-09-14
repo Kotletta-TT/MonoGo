@@ -1,7 +1,11 @@
 package main
 
-import "github.com/Kotletta-TT/MonoGo/cmd/server/app"
+import (
+	"github.com/Kotletta-TT/MonoGo/cmd/server/app"
+	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
+)
 
 func main() {
-	app.Run()
+	cfg := config.NewConfig()
+	app.Run(cfg)
 }

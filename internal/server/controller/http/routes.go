@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/Kotletta-TT/MonoGo/internal/server/infrastructure/repository"
+	"github.com/Kotletta-TT/MonoGo/internal/server/storage"
 	"github.com/Kotletta-TT/MonoGo/internal/server/usecase"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -12,7 +12,7 @@ const (
 	COUNTER = "counter"
 )
 
-func ListMetrics(repo repository.Repository) func(ctx *gin.Context) {
+func ListMetrics(repo storage.Repository) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		metrics := repo.GetAllMetrics()
 		byteMetrics := usecase.TextPlainMetrics(metrics)
@@ -23,7 +23,7 @@ func ListMetrics(repo repository.Repository) func(ctx *gin.Context) {
 	}
 }
 
-func GetGaugeMetric(repo repository.Repository) func(ctx *gin.Context) {
+func GetGaugeMetric(repo storage.Repository) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		mName := ctx.Param("metric")
 		value, err := repo.GetGaugeMetric(mName)
@@ -39,7 +39,7 @@ func GetGaugeMetric(repo repository.Repository) func(ctx *gin.Context) {
 	}
 }
 
-func GetCounterMetric(repo repository.Repository) func(ctx *gin.Context) {
+func GetCounterMetric(repo storage.Repository) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		mName := ctx.Param("metric")
 		value, err := repo.GetCounterMetric(mName)
@@ -55,7 +55,7 @@ func GetCounterMetric(repo repository.Repository) func(ctx *gin.Context) {
 	}
 }
 
-func SetMetric(repo repository.Repository) func(ctx *gin.Context) {
+func SetMetric(repo storage.Repository) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		switch ctx.Param("metricType") {
 		case GAUGE:
@@ -70,7 +70,7 @@ func SetMetric(repo repository.Repository) func(ctx *gin.Context) {
 	}
 }
 
-func SetGaugeMetric(repo repository.Repository, ctx *gin.Context) {
+func SetGaugeMetric(repo storage.Repository, ctx *gin.Context) {
 	name := ctx.Param("metric")
 	mValue := ctx.Param("value")
 	if mValue == "" {
@@ -85,7 +85,7 @@ func SetGaugeMetric(repo repository.Repository, ctx *gin.Context) {
 	ctx.Writer.WriteHeader(http.StatusOK)
 }
 
-func SetCounterMetric(repo repository.Repository, ctx *gin.Context) {
+func SetCounterMetric(repo storage.Repository, ctx *gin.Context) {
 	name := ctx.Param("metric")
 	mValue := ctx.Param("value")
 	if mValue == "" {

@@ -1,11 +1,11 @@
 package http
 
 import (
-	"github.com/Kotletta-TT/MonoGo/internal/server/infrastructure/repository"
+	"github.com/Kotletta-TT/MonoGo/internal/server/storage"
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(repo repository.Repository) *gin.Engine {
+func NewRouter(repo storage.Repository) *gin.Engine {
 	engine := gin.Default()
 	engine.RedirectTrailingSlash = false
 	engine.GET("/", ListMetrics(repo))

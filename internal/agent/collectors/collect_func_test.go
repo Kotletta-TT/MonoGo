@@ -1,7 +1,7 @@
-package usecase
+package collectors
 
 import (
-	"github.com/Kotletta-TT/MonoGo/internal/agent/infrastructure/repository"
+	"github.com/Kotletta-TT/MonoGo/internal/agent/storage"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -31,14 +31,14 @@ func TestCustomMetricsCollector(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := repository.New()
+			repo := storage.New()
 			for i := 0; i < int(tt.wantCounter); i++ {
 				CustomMetricsCollector(repo)
 			}
 			m := repo.GetMetrics()
-			counter := m["PoolCount"].(int64)
+			counter := m["PoolCount"].Metric
 			assert.Equal(t, tt.wantLenMetrics, len(m))
-			assert.Equal(t, tt.wantCounter, counter)
+			assert.Equal(t, tt.wantCounter, int64(counter))
 		})
 	}
 }
@@ -53,7 +53,7 @@ func TestRuntimeMetricsCollector(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			repo := repository.New()
+			repo := storage.New()
 			RuntimeMetricsCollector(repo)
 			m := repo.GetMetrics()
 			assert.Equal(t, 27, len(m))
