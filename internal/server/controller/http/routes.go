@@ -3,7 +3,10 @@ package http
 import (
 	"github.com/Kotletta-TT/MonoGo/internal/server/storage"
 	"github.com/Kotletta-TT/MonoGo/internal/server/usecase"
+	"github.com/Kotletta-TT/MonoGo/internal/shared"
 	"github.com/gin-gonic/gin"
+	"github.com/mailru/easyjson"
+	"io"
 	"net/http"
 )
 
@@ -98,4 +101,62 @@ func SetCounterMetric(repo storage.Repository, ctx *gin.Context) {
 	}
 	repo.StoreCounterMetric(name, value)
 	ctx.Writer.WriteHeader(http.StatusOK)
+}
+
+func SetJSONMetric(repo storage.Repository) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		m := shared.NewMetrics()
+		err := easyjson.UnmarshalFromReader(ctx.Request.Body, m)
+		if err != nil && err != io.EOF {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		switch {
+		case m.MType == GAUGE && m.Value != nil:
+			repo.StoreGaugeMetric(m.ID, *m.Value)
+			ctx.JSON(http.StatusOK, m)
+		case m.MType == COUNTER && m.Delta != nil:
+			repo.StoreCounterMetric(m.ID, *m.Delta)
+			delta, err := repo.GetCounterMetric(m.ID)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			m.Delta = &delta
+			ctx.JSON(http.StatusOK, m)
+		default:
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid metric type"})
+		}
+	}
+}
+
+func GetJSONMetric(repo storage.Repository) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		m := shared.NewMetrics()
+		err := easyjson.UnmarshalFromReader(ctx.Request.Body, m)
+		if err != nil && err != io.EOF {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		switch {
+		case m.MType == GAUGE:
+			val, err := repo.GetGaugeMetric(m.ID)
+			if err != nil {
+				ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			m.Value = &val
+			ctx.JSON(http.StatusOK, m)
+		case m.MType == COUNTER:
+			delta, err := repo.GetCounterMetric(m.ID)
+			if err != nil {
+				ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+				return
+			}
+			m.Delta = &delta
+			ctx.JSON(http.StatusOK, m)
+		default:
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid metric type"})
+		}
+	}
 }

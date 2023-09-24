@@ -14,6 +14,6 @@ run_serv:
 	ADDRESS="${ADDRESS}" LOG_LEVEL="${LOG_LEVEL}" LOG_PATH="${LOG_PATH}" go run cmd/server/main.go
 
 run_agent:
-	ADDRESS="${ADDRESS}" REPORT_INTERVAL="${REPORT_INTERVAL}" POOL_INTERVAL="${POOL_INTERVAL}" go run cmd/agent/main.go
+	ADDRESS="${ADDRESS}" REPORT_INTERVAL="${REPORT_INTERVAL}" POLL_INTERVAL="${POLL_INTERVAL}" go run cmd/agent/main.go
 
 .PHONY: build server agent

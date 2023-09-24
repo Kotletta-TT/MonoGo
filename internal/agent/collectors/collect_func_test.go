@@ -36,7 +36,7 @@ func TestCustomMetricsCollector(t *testing.T) {
 				CustomMetricsCollector(repo)
 			}
 			m := repo.GetMetrics()
-			counter := m["PoolCount"].Metric
+			counter := m["PollCount"].Metric
 			assert.Equal(t, tt.wantLenMetrics, len(m))
 			assert.Equal(t, tt.wantCounter, int64(counter))
 		})

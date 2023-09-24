@@ -30,7 +30,54 @@ Content-Type: text/plain
 ###
 # @no-redirect
 POST http://localhost:8080/update/a/b/c/
-Content-Type: text/plain
+Content-Type: application/json
 ###
 
 GET http://localhost:8080/
+
+### Send POST request with json body
+POST http://localhost:8080/update/
+Content-Type: application/json
+
+{
+  "id": "counter1",
+  "type": "counter",
+  "delta": 744
+}
+
+###
+POST http://localhost:8080/update/
+Content-Type: application/json
+
+{
+  "id": "gauge1",
+  "type": "gauge",
+  "value": 744.0
+}
+
+###
+POST http://localhost:8080/value/
+Content-Type: application/json
+
+{
+  "id": "gauge1",
+  "type": "gauge"
+}
+
+###
+POST http://localhost:8080/value/
+Content-Type: application/json
+
+{
+  "id": "counter1",
+  "type": "counter"
+}
+
+###
+POST http://localhost:8080/value/
+Content-Type: application/json
+
+{
+"id": "HeapReleased",
+"type": "gauge"
+}
