@@ -5,6 +5,7 @@ import (
 	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
 	"github.com/Kotletta-TT/MonoGo/internal/shared"
 	"github.com/go-resty/resty/v2"
+	"github.com/mailru/easyjson"
 	"io"
 	"log"
 	"math"
@@ -27,9 +28,9 @@ type Sender interface {
 }
 
 type HTTPSender struct {
-	repo       metricsStore
-	client     *resty.Client
-	serverAddr string
+	repo   metricsStore
+	client *resty.Client
+	cfg    *config.Config
 }
 
 type TextPlainSender HTTPSender
@@ -38,16 +39,16 @@ type JSONSender HTTPSender
 func NewHTTPSender(repo metricsStore, cfg *config.Config) Sender {
 	switch cfg.SendType {
 	case JSON:
-		return &JSONSender{repo: repo, client: resty.New(), serverAddr: cfg.ServerHost}
+		return &JSONSender{repo: repo, client: resty.New(), cfg: cfg}
 	case TEXT:
-		return &TextPlainSender{repo: repo, client: resty.New(), serverAddr: cfg.ServerHost}
+		return &TextPlainSender{repo: repo, client: resty.New(), cfg: cfg}
 	default:
 		panic("Send type unknown")
 	}
 }
 
 func (h *TextPlainSender) compileURL(nameMetric string, valueMetric *entity.Value) string {
-	compileURL := url.URL{Host: h.serverAddr, Scheme: "http"}
+	compileURL := url.URL{Host: h.cfg.ServerHost, Scheme: "http"}
 	switch valueMetric.Kind {
 	case entity.KindGauge:
 		return compileURL.JoinPath("update", GAUGE, nameMetric, valueMetric.String()).String()
@@ -92,21 +93,43 @@ func JSONMetricFabric(name string, value *entity.Value) *shared.Metrics {
 	}
 }
 
+func (j *JSONSender) prepareBody(m *shared.Metrics) ([]byte, error) {
+	mBytes, err := easyjson.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	switch j.cfg.Compress {
+	case "gzip":
+		return shared.GzipCompress(mBytes)
+	default:
+		return mBytes, nil
+	}
+}
+
 func (j *JSONSender) Send() {
 	log.Println("Start JSON send metrics")
-	sendURL := url.URL{Host: j.serverAddr, Scheme: "http", Path: "/update/"}
+	sendURL := url.URL{Host: j.cfg.ServerHost, Scheme: "http", Path: "/update/"}
 	metrics := j.repo.GetMetrics()
 	log.Printf("Send URL: %s\n", sendURL.String())
 	for k, v := range metrics {
 		m := JSONMetricFabric(k, v)
-		mJSON, err := m.MarshalJSON()
+		mJSON, err := j.prepareBody(m)
 		if err != nil {
 			panic(err)
 		}
-		log.Printf("Send JSON: %s\n", mJSON)
-		resp, err := j.client.R().SetHeader("Content-Type", "application/json").SetBody(mJSON).Post(sendURL.String())
-		if err != nil && resp.StatusCode() != 200 && err != io.EOF {
+		req := j.client.R()
+		req.SetHeader("Content-Type", "application/json")
+		if j.cfg.Compress == "gzip" {
+			req.SetHeader("Content-Encoding", "gzip")
+			req.SetHeader("Accept-Encoding", "gzip")
+		}
+		req.SetBody(mJSON)
+		resp, err := req.Post(sendURL.String())
+		if err != nil && err != io.EOF {
 			log.Printf("error: Code: %d, Body: %s err: %s\n", resp.StatusCode(), resp.String(), err.Error())
+		}
+		if resp.StatusCode() != 200 {
+			log.Printf("error: Code: %d, Body: %s\n", resp.StatusCode(), resp.String())
 		}
 	}
 }

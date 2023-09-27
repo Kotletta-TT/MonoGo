@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
 	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
 	"github.com/Kotletta-TT/MonoGo/internal/agent/storage"
 	"github.com/go-resty/resty/v2"
@@ -40,9 +41,9 @@ func TestHTTPSender_compileURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &TextPlainSender{
-				repo:       tt.fields.repo,
-				client:     tt.fields.client,
-				serverAddr: "localhost:8080",
+				repo:   tt.fields.repo,
+				client: tt.fields.client,
+				cfg:    &config.Config{ServerHost: "localhost:8080"},
 			}
 			val := entity.NewValueFromUint64(tt.args.value, tt.args.typeMetric)
 			assert.Equalf(t, tt.want, h.compileURL(tt.args.nameMetric, val), "compileURL(%v, %v)", tt.args.nameMetric, val)

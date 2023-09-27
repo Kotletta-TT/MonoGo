@@ -10,6 +10,7 @@ func NewRouter(repo storage.Repository) *gin.Engine {
 	engine := gin.New()
 	engine.RedirectTrailingSlash = false
 	engine.Use(RequestResponseLogging())
+	engine.Use(CompressMiddleware())
 	engine.Use(gin.Recovery())
 	engine.GET("/", ListMetrics(repo))
 	engine.GET("/value/gauge/:metric", GetGaugeMetric(repo))
