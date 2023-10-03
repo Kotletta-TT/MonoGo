@@ -1,9 +1,10 @@
 package http
 
 import (
+	"time"
+
 	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
 	"github.com/gin-gonic/gin"
-	"time"
 )
 
 func RequestResponseLogging() gin.HandlerFunc {
@@ -15,6 +16,6 @@ func RequestResponseLogging() gin.HandlerFunc {
 		if WriteSize < 0 {
 			WriteSize = 0
 		}
-		logger.Logger.Infof("%s %s %d %s %s %d bytes", ctx.ClientIP(), ctx.Request.Method, ctx.Writer.Status(), ctx.Request.URL.Path, duration, WriteSize)
+		logger.Infof("%s %s %d %s %s %d bytes", ctx.ClientIP(), ctx.Request.Method, ctx.Writer.Status(), ctx.Request.URL.Path, duration, WriteSize)
 	}
 }

@@ -2,10 +2,11 @@ package http
 
 import (
 	"compress/gzip"
-	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
-	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
+
+	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
+	"github.com/gin-gonic/gin"
 )
 
 const GZIP = "gzip"
@@ -30,7 +31,7 @@ func CompressMiddleware() gin.HandlerFunc {
 			gzipWriter := gzip.NewWriter(ctx.Writer)
 			defer func() {
 				if err := gzipWriter.Close(); err != nil {
-					logger.Logger.Infof("gzip writer close error: %s", err.Error())
+					logger.Infof("gzip writer close error: %s", err.Error())
 				}
 			}()
 			gzippedResponseWriter := &gzipResponseWriter{ctx.Writer, gzipWriter}
@@ -40,11 +41,11 @@ func CompressMiddleware() gin.HandlerFunc {
 			gzipReader, err := gzip.NewReader(ctx.Request.Body)
 			defer func() {
 				if err := gzipReader.Close(); err != nil {
-					logger.Logger.Infof("gzip reader close error: %s", err.Error())
+					logger.Infof("gzip reader close error: %s", err.Error())
 				}
 			}()
 			if err != nil {
-				logger.Logger.Infof("gzip error: %s", err.Error())
+				logger.Infof("gzip error: %s", err.Error())
 				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}

@@ -6,10 +6,13 @@ import (
 )
 
 type Config struct {
-	RunServerAddr string `env:"ADDRESS"`
-	LogLevel      string `env:"LOG_LEVEL"`
-	LogPath       string `env:"LOG_PATH"`
-	LogFile       bool   `env:"LOG_FILE"`
+	RunServerAddr   string `env:"ADDRESS"`
+	LogLevel        string `env:"LOG_LEVEL"`
+	LogPath         string `env:"LOG_PATH"`
+	LogFile         bool   `env:"LOG_FILE"`
+	StoreInterval   int    `env:"STORE_INTERVAL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	Restore         bool   `env:"RESTORE"`
 }
 
 func NewConfig() *Config {
@@ -18,6 +21,9 @@ func NewConfig() *Config {
 	flag.StringVar(&config.LogLevel, "l", "INFO", "Log level")
 	flag.StringVar(&config.LogPath, "p", "/var/log/monogo.log", "Log path")
 	flag.BoolVar(&config.LogFile, "log-file", false, "Log file")
+	flag.IntVar(&config.StoreInterval, "i", 300, "Frequency to store server in sec")
+	flag.StringVar(&config.FileStoragePath, "f", "/tmp/metrics-db.json", "File storage path")
+	flag.BoolVar(&config.Restore, "r", true, "Restore from file")
 	flag.Parse()
 	err := env.Parse(&config)
 	if err != nil {
