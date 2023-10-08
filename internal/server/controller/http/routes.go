@@ -17,6 +17,7 @@ const (
 
 func ListMetrics(repo storage.Repository) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
+		ctx.Writer.Header().Set("Content-Type", "text/html")
 		metrics := repo.GetAllMetrics()
 		byteMetrics := usecase.TextPlainMetrics(metrics)
 		if _, err := ctx.Writer.Write(byteMetrics); err != nil {

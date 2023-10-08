@@ -81,3 +81,6 @@ Content-Type: application/json
 "id": "HeapReleased",
 "type": "gauge"
 }
+
+###
+GET http://localhost:8080/

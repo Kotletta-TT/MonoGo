@@ -10,6 +10,7 @@ type Config struct {
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	SendType       string `env:"SEND_TYPE"`
+	Compress       string `env:"COMPRESS"`
 }
 
 func NewConfig() *Config {
@@ -18,6 +19,7 @@ func NewConfig() *Config {
 	flag.IntVar(&config.ReportInterval, "r", 10, "Frequency to send server in sec")
 	flag.IntVar(&config.PollInterval, "p", 2, "Frequency collect metrics in sec")
 	flag.StringVar(&config.SendType, "s", "json", "Send type")
+	flag.StringVar(&config.Compress, "compress", "gzip", "Compress send JSON-data")
 	flag.Parse()
 	err := env.Parse(&config)
 	if err != nil {
