@@ -47,5 +47,5 @@ func CustomMetricsCollector(repo collectorStorage) {
 	log.Println("start custom metrics collector")
 	pollCount := &entity.Value{Metric: uint64(int64(1)), Kind: entity.KindCounter}
 	randValue := &entity.Value{Metric: math.Float64bits(rand.Float64()), Kind: entity.KindGauge}
-	repo.StoreMetrics(map[string]*entity.Value{"PoolCount": pollCount, "RandomValue": randValue})
+	repo.StoreMetrics(map[string]*entity.Value{"PollCount": pollCount, "RandomValue": randValue})
 }

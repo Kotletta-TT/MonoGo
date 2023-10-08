@@ -14,13 +14,13 @@ func Run(cfg *config.Config) {
 	collector := collectors.NewCollector(repo)
 	collector.RegisterCollectorMetricFunc(collectors.RuntimeMetricsCollector)
 	collector.RegisterCollectorMetricFunc(collectors.CustomMetricsCollector)
-	httpSender := sender.NewHTTPSender(repo, cfg.ServerHost)
-	poolTic := time.NewTicker(time.Second * time.Duration(cfg.PoolInterval))
+	httpSender := sender.NewHTTPSender(repo, cfg)
+	pollTic := time.NewTicker(time.Second * time.Duration(cfg.PollInterval))
 	reportTic := time.NewTicker(time.Second * time.Duration(cfg.ReportInterval))
 	log.Println("Start work")
 	for {
 		select {
-		case <-poolTic.C:
+		case <-pollTic.C:
 			go collector.Collect()
 		case <-reportTic.C:
 			go httpSender.Send()

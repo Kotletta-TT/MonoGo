@@ -39,7 +39,7 @@ func TestHTTPSender_compileURL(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := &HTTPSender{
+			h := &TextPlainSender{
 				repo:       tt.fields.repo,
 				client:     tt.fields.client,
 				serverAddr: "localhost:8080",
