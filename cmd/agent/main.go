@@ -1,9 +1,10 @@
 package main
 
 import (
+	"log"
+
 	"github.com/Kotletta-TT/MonoGo/cmd/agent/app"
 	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
-	"log"
 )
 
 func main() {

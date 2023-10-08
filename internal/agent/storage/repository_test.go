@@ -2,12 +2,13 @@ package storage
 
 import (
 	"fmt"
-	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"math/rand"
 	"sync"
 	"testing"
+
+	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
+	"github.com/stretchr/testify/assert"
 )
 
 func MockMetrics(lenGauge, lenCounter int) map[string]*entity.Value {
@@ -28,9 +29,6 @@ func MockMetrics(lenGauge, lenCounter int) map[string]*entity.Value {
 }
 
 func TestMemAgentRepository_StoreMetrics(t *testing.T) {
-	type args struct {
-		metrics map[string]interface{}
-	}
 	tests := []struct {
 		name       string
 		lenGauge   int

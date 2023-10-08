@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+
 	"github.com/caarlos0/env/v9"
 )
 
@@ -13,6 +14,7 @@ type Config struct {
 	StoreInterval   int    `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
+	DatabaseDSN     string `env:"DATABASE_DSN"`
 }
 
 func NewConfig() *Config {
@@ -24,6 +26,7 @@ func NewConfig() *Config {
 	flag.IntVar(&config.StoreInterval, "i", 300, "Frequency to store server in sec")
 	flag.StringVar(&config.FileStoragePath, "f", "/tmp/metrics-db.json", "File storage path")
 	flag.BoolVar(&config.Restore, "r", true, "Restore from file")
+	flag.StringVar(&config.DatabaseDSN, "d", "postgres://username:password@localhost:5432/database_name", "DB URL")
 	flag.Parse()
 	err := env.Parse(&config)
 	if err != nil {
