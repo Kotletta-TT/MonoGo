@@ -2,18 +2,24 @@ package usecase
 
 import (
 	"fmt"
+	"github.com/Kotletta-TT/MonoGo/internal/shared"
 	"strconv"
 )
 
-func TextPlainMetrics(metrics map[string]interface{}) []byte {
+const (
+	GAUGE   = "gauge"
+	COUNTER = "counter"
+)
+
+func TextPlainMetrics(metrics map[string]*shared.Metrics) []byte {
 	textPlain := make([]byte, 0, 1024)
 	for k, v := range metrics {
-		switch v := v.(type) {
-		case float64:
-			stringValue := strconv.FormatFloat(v, 'f', -1, 64)
+		switch v.MType {
+		case GAUGE:
+			stringValue := strconv.FormatFloat(*v.Value, 'f', -1, 64)
 			textPlain = append(textPlain, []byte(fmt.Sprintf("%s %s\r\n", k, stringValue))...)
-		case int64:
-			textPlain = append(textPlain, []byte(fmt.Sprintf("%s %d\r\n", k, v))...)
+		case COUNTER:
+			textPlain = append(textPlain, []byte(fmt.Sprintf("%s %d\r\n", k, *v.Delta))...)
 		}
 	}
 	return textPlain

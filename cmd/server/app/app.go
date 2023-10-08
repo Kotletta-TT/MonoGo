@@ -8,8 +8,9 @@ import (
 )
 
 func Run(cfg *config.Config) {
-	memRepo := storage.New()
+	memRepo := storage.New(cfg)
+	go memRepo.Stash()
 	ginRouter := http.NewRouter(memRepo)
-	logger.Logger.Infof("Start server: http://%s/", cfg.RunServerAddr)
-	logger.Logger.Fatal(ginRouter.Run(cfg.RunServerAddr))
+	logger.Infof("Start server: http://%s/", cfg.RunServerAddr)
+	logger.Fatal(ginRouter.Run(cfg.RunServerAddr))
 }
