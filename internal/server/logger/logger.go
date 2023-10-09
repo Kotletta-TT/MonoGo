@@ -40,115 +40,115 @@ func Init(config *config.Config) {
 }
 
 func Debug(args ...interface{}) {
-	logger.Debug(args)
+	logger.Debug(args...)
 }
 
 func Info(args ...interface{}) {
-	logger.Info(args)
+	logger.Info(args...)
 }
 
 func Warn(args ...interface{}) {
-	logger.Warn(args)
+	logger.Warn(args...)
 }
 
 func Error(args ...interface{}) {
-	logger.Error(args)
+	logger.Error(args...)
 }
 
 func DPanic(args ...interface{}) {
-	logger.DPanic(args)
+	logger.DPanic(args...)
 }
 
 func Panic(args ...interface{}) {
-	logger.Panic(args)
+	logger.Panic(args...)
 }
 
 func Fatal(args ...interface{}) {
-	logger.Fatal(args)
+	logger.Fatal(args...)
 }
 
 func Debugf(template string, args ...interface{}) {
-	logger.Debugf(template, args)
+	logger.Debugf(template, args...)
 }
 
 func Infof(template string, args ...interface{}) {
-	logger.Infof(template, args)
+	logger.Infof(template, args...)
 }
 
 func Warnf(template string, args ...interface{}) {
-	logger.Warnf(template, args)
+	logger.Warnf(template, args...)
 }
 
 func Errorf(template string, args ...interface{}) {
-	logger.Errorf(template, args)
+	logger.Errorf(template, args...)
 }
 
 func DPanicf(template string, args ...interface{}) {
-	logger.DPanicf(template, args)
+	logger.DPanicf(template, args...)
 }
 
 func Panicf(template string, args ...interface{}) {
-	logger.Panicf(template, args)
+	logger.Panicf(template, args...)
 }
 
 func Fatalf(template string, args ...interface{}) {
-	logger.Fatalf(template, args)
+	logger.Fatalf(template, args...)
 }
 
 func Debugw(msg string, keysAndValues ...interface{}) {
-	logger.Debugw(msg, keysAndValues)
+	logger.Debugw(msg, keysAndValues...)
 }
 
 func Infow(msg string, keysAndValues ...interface{}) {
-	logger.Infow(msg, keysAndValues)
+	logger.Infow(msg, keysAndValues...)
 }
 
 func Warnw(msg string, keysAndValues ...interface{}) {
-	logger.Warnw(msg, keysAndValues)
+	logger.Warnw(msg, keysAndValues...)
 }
 
 func Errorw(msg string, keysAndValues ...interface{}) {
-	logger.Errorw(msg, keysAndValues)
+	logger.Errorw(msg, keysAndValues...)
 }
 
 func DPanicw(msg string, keysAndValues ...interface{}) {
-	logger.DPanicw(msg, keysAndValues)
+	logger.DPanicw(msg, keysAndValues...)
 }
 
 func Panicw(msg string, keysAndValues ...interface{}) {
-	logger.Panicw(msg, keysAndValues)
+	logger.Panicw(msg, keysAndValues...)
 }
 
 func Fatalw(msg string, keysAndValues ...interface{}) {
-	logger.Fatalw(msg, keysAndValues)
+	logger.Fatalw(msg, keysAndValues...)
 }
 
 func Debugln(args ...interface{}) {
-	logger.Debugln(args)
+	logger.Debugln(args...)
 }
 
 func Infoln(args ...interface{}) {
-	logger.Infoln(args)
+	logger.Infoln(args...)
 }
 
 func Warnln(args ...interface{}) {
-	logger.Warnln(args)
+	logger.Warnln(args...)
 }
 
 func Errorln(args ...interface{}) {
-	logger.Errorln(DPanicln)
+	logger.Errorln(args...)
 }
 
 func DPanicln(args ...interface{}) {
-	logger.DPanicln(args)
+	logger.DPanicln(args...)
 }
 
 func Panicln(args ...interface{}) {
-	logger.Panicln(args)
+	logger.Panicln(args...)
 }
 
 func Fatalln(args ...interface{}) {
-	logger.Fatalln(args)
+	logger.Fatalln(args...)
 }
 
 func Sync() error {
