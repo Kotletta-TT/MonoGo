@@ -26,7 +26,7 @@ type Repository interface {
 func GetRepo(cfg *config.Config) Repository {
 	repo, err := postgres.New(cfg)
 	if cfg.DatabaseDSN == "" || err != nil {
-		logger.Fatalf("Connect to database error: %s", err)
+		logger.Infof("Connect to database error: %s", err)
 		logger.Info("Repo: MemoryStorage")
 		return memory.New(cfg)
 	}

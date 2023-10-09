@@ -20,11 +20,11 @@ func New(cfg *config.Config) (*Database, error) {
 	}
 	d := &Database{db: db}
 	logger.Info("Create table")
-	d.initTable()
-	return d, nil
+	err = d.initTable()
+	return d, err
 }
 
-func (d *Database) initTable() {
+func (d *Database) initTable() error {
 	if _, err := d.db.Exec(`CREATE TABLE IF NOT EXISTS metrics (
 		name VARCHAR(255) NOT NULL,
 		mtype VARCHAR(10) NOT NULL,
@@ -32,8 +32,9 @@ func (d *Database) initTable() {
 		delta INTEGER,
 		PRIMARY KEY (name)
 	);`); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func (d *Database) StoreGaugeMetric(name string, value float64) {
@@ -123,6 +124,10 @@ func (d *Database) GetAllMetrics() map[string]*shared.Metrics {
 	if err != nil {
 		tx.Rollback()
 		panic(err)
+	}
+	if rows.Err() != nil {
+		tx.Rollback()
+		panic(rows.Err())
 	}
 	defer rows.Close()
 	metrics := make(map[string]*shared.Metrics)
