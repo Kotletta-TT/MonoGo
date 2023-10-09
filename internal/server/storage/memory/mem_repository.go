@@ -3,6 +3,7 @@ package memory
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -164,5 +165,5 @@ func (m *MemRepository) LoadFromFile() (map[string]*shared.Metrics, error) {
 func (m *MemRepository) Close() {}
 
 func (m *MemRepository) HealthCheck(ctx context.Context) error {
-	return nil
+	return errors.New("No connect to database")
 }
