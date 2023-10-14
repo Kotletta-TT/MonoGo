@@ -12,15 +12,16 @@ import (
 )
 
 type Repository interface {
-	StoreGaugeMetric(name string, value float64)
-	StoreCounterMetric(name string, value int64)
+	StoreGaugeMetric(name string, value float64) error
+	StoreCounterMetric(name string, value int64) error
 	GetGaugeMetric(name string) (float64, error)
 	GetCounterMetric(name string) (int64, error)
-	GetAllMetrics() map[string]*shared.Metrics
+	GetAllMetrics() (map[string]*shared.Metrics, error)
 	LoadFromFile() (map[string]*shared.Metrics, error)
 	Stash()
 	Close()
 	HealthCheck(ctx context.Context) error
+	StoreBatchMetric(metricSlice []*shared.Metrics) error
 }
 
 func GetRepo(cfg *config.Config) Repository {

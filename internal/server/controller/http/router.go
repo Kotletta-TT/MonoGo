@@ -18,6 +18,7 @@ func NewRouter(repo storage.Repository) *gin.Engine {
 	engine.POST("/value/", GetJSONMetric(repo))
 	engine.POST("/update/:metricType/:metric/:value", SetMetric(repo))
 	engine.POST("/update/", SetJSONMetric(repo))
+	engine.POST("/updates/", SetBatchJSONMetric(repo))
 	engine.GET("/ping", PingDB(repo))
 	return engine
 }

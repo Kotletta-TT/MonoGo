@@ -1,15 +1,16 @@
 package sender
 
 import (
+	"io"
+	"log"
+	"math"
+	"net/url"
+
 	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
 	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
 	"github.com/Kotletta-TT/MonoGo/internal/shared"
 	"github.com/go-resty/resty/v2"
 	"github.com/mailru/easyjson"
-	"io"
-	"log"
-	"math"
-	"net/url"
 )
 
 const (
@@ -21,6 +22,7 @@ const (
 
 type metricsStore interface {
 	GetMetrics() map[string]*entity.Value
+	GetMetricsSlice() []*shared.Metrics
 }
 
 type Sender interface {
@@ -93,8 +95,18 @@ func JSONMetricFabric(name string, value *entity.Value) *shared.Metrics {
 	}
 }
 
-func (j *JSONSender) prepareBody(m *shared.Metrics) ([]byte, error) {
-	mBytes, err := easyjson.Marshal(m)
+func (j *JSONSender) prepareBody(m ...*shared.Metrics) ([]byte, error) {
+	var mBytes []byte
+	var err error
+	switch len(m) {
+	case 0:
+		mBytes = []byte{}
+	case 1:
+		mBytes, err = easyjson.Marshal(m[0])
+	default:
+		mArray := shared.SliceMetrics(m)
+		mBytes, err = easyjson.Marshal(mArray)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -107,21 +119,21 @@ func (j *JSONSender) prepareBody(m *shared.Metrics) ([]byte, error) {
 }
 
 func (j *JSONSender) Send() {
+	var sendURL url.URL
 	log.Println("Start JSON send metrics")
-	sendURL := url.URL{Host: j.cfg.ServerHost, Scheme: "http", Path: "/update/"}
-	metrics := j.repo.GetMetrics()
-	log.Printf("Send URL: %s\n", sendURL.String())
-	for k, v := range metrics {
-		m := JSONMetricFabric(k, v)
-		mJSON, err := j.prepareBody(m)
+	req := j.client.R()
+	req.SetHeader("Content-Type", "application/json")
+	if j.cfg.Compress == "gzip" {
+		req.SetHeader("Content-Encoding", "gzip")
+		req.SetHeader("Accept-Encoding", "gzip")
+	}
+	switch j.cfg.BatchSupport {
+	case true:
+		metrics := j.repo.GetMetricsSlice()
+		sendURL = url.URL{Host: j.cfg.ServerHost, Scheme: "http", Path: "/updates/"}
+		mJSON, err := j.prepareBody(metrics...)
 		if err != nil {
 			panic(err)
-		}
-		req := j.client.R()
-		req.SetHeader("Content-Type", "application/json")
-		if j.cfg.Compress == "gzip" {
-			req.SetHeader("Content-Encoding", "gzip")
-			req.SetHeader("Accept-Encoding", "gzip")
 		}
 		req.SetBody(mJSON)
 		resp, err := req.Post(sendURL.String())
@@ -130,6 +142,25 @@ func (j *JSONSender) Send() {
 		}
 		if resp.StatusCode() != 200 {
 			log.Printf("error: Code: %d, Body: %s\n", resp.StatusCode(), resp.String())
+		}
+	default:
+		metrics := j.repo.GetMetrics()
+		sendURL = url.URL{Host: j.cfg.ServerHost, Scheme: "http", Path: "/update/"}
+		for k, v := range metrics {
+			m := JSONMetricFabric(k, v)
+			mJSON, err := j.prepareBody(m)
+			if err != nil {
+				panic(err)
+			}
+			req.SetBody(mJSON)
+			resp, err := req.Post(sendURL.String())
+			if err != nil && err != io.EOF {
+				log.Printf("error: Code: %d, Body: %s err: %s\n", resp.StatusCode(), resp.String(), err.Error())
+				continue
+			}
+			if resp.StatusCode() != 200 {
+				log.Printf("error: Code: %d, Body: %s\n", resp.StatusCode(), resp.String())
+			}
 		}
 	}
 }

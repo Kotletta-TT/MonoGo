@@ -31,7 +31,7 @@ func CompressMiddleware() gin.HandlerFunc {
 			gzipWriter := gzip.NewWriter(ctx.Writer)
 			defer func() {
 				if err := gzipWriter.Close(); err != nil {
-					logger.Infof("gzip writer close error: %s", err.Error())
+					logger.Errorf("gzip writer close error: %s", err.Error())
 				}
 			}()
 			gzippedResponseWriter := &gzipResponseWriter{ctx.Writer, gzipWriter}
@@ -39,16 +39,16 @@ func CompressMiddleware() gin.HandlerFunc {
 		}
 		if ctx.GetHeader("Content-Encoding") == GZIP {
 			gzipReader, err := gzip.NewReader(ctx.Request.Body)
-			defer func() {
-				if err := gzipReader.Close(); err != nil {
-					logger.Infof("gzip reader close error: %s", err.Error())
-				}
-			}()
 			if err != nil {
-				logger.Infof("gzip error: %s", err.Error())
+				logger.Errorf("gzip error: %s", err.Error())
 				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
+			defer func() {
+				if err := gzipReader.Close(); err != nil {
+					logger.Errorf("gzip reader close error: %s", err.Error())
+				}
+			}()
 			ctx.Request.Body = gzipReader
 		}
 		ctx.Next()

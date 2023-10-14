@@ -1,13 +1,18 @@
 package storage
 
 import (
-	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
+	"maps"
+	"math"
 	"sync"
+
+	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
+	"github.com/Kotletta-TT/MonoGo/internal/shared"
 )
 
 type AgentRepository interface {
 	StoreMetrics(map[string]*entity.Value)
 	GetMetrics() map[string]*entity.Value
+	GetMetricsSlice() []*shared.Metrics
 }
 
 type MemAgentRepository struct {
@@ -46,5 +51,25 @@ func (m *MemAgentRepository) StoreMetrics(metrics map[string]*entity.Value) {
 func (m *MemAgentRepository) GetMetrics() map[string]*entity.Value {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.storage
+	return maps.Clone(m.storage)
+}
+
+func (m *MemAgentRepository) GetMetricsSlice() []*shared.Metrics {
+	oldMetrics := m.GetMetrics()
+	metrics := make([]*shared.Metrics, 0, len(oldMetrics))
+	for k, v := range oldMetrics {
+		newMetric := &shared.Metrics{ID: k}
+		switch v.Kind {
+		case entity.KindCounter:
+			newMetric.MType = "counter"
+			delta := int64(v.Metric)
+			newMetric.Delta = &delta
+		case entity.KindGauge:
+			newMetric.MType = "gauge"
+			value := math.Float64frombits(v.Metric)
+			newMetric.Value = &value
+		}
+		metrics = append(metrics, newMetric)
+	}
+	return metrics
 }

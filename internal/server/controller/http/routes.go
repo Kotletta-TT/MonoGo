@@ -21,7 +21,11 @@ const (
 func ListMetrics(repo storage.Repository) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		ctx.Writer.Header().Set("Content-Type", "text/html")
-		metrics := repo.GetAllMetrics()
+		metrics, err := repo.GetAllMetrics()
+		if err != nil {
+			ctx.Writer.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 		byteMetrics := usecase.TextPlainMetrics(metrics)
 		if _, err := ctx.Writer.Write(byteMetrics); err != nil {
 			panic(err)
@@ -107,6 +111,23 @@ func SetCounterMetric(repo storage.Repository, ctx *gin.Context) {
 	}
 	repo.StoreCounterMetric(name, value)
 	ctx.Writer.WriteHeader(http.StatusOK)
+}
+
+func SetBatchJSONMetric(repo storage.Repository) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		metrics := make([]*shared.Metrics, 0)
+		batch := shared.SliceMetrics(metrics)
+		err := easyjson.UnmarshalFromReader(ctx.Request.Body, &batch)
+		if err != nil && err != io.EOF {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		err = repo.StoreBatchMetric(batch)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+	}
 }
 
 func SetJSONMetric(repo storage.Repository) func(ctx *gin.Context) {
