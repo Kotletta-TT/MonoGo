@@ -4,15 +4,14 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"fmt"
 	"maps"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
+	"github.com/Kotletta-TT/MonoGo/internal/common"
 	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
-	"github.com/Kotletta-TT/MonoGo/internal/shared"
 	"github.com/mailru/easyjson"
 )
 
@@ -23,16 +22,16 @@ const (
 
 type MemRepository struct {
 	mu      sync.Mutex
-	storage map[string]*shared.Metrics
+	storage map[string]*common.Metrics
 	cfg     *config.Config
 }
 
 func New(cfg *config.Config) *MemRepository {
-	store := make(map[string]*shared.Metrics)
+	store := make(map[string]*common.Metrics)
 	m := &MemRepository{mu: sync.Mutex{}, cfg: cfg}
 	if cfg.Restore {
 		logger.Infof("Attempt to restore from file: %s", cfg.FileStoragePath)
-		loadBackup, err := m.LoadFromFile()
+		loadBackup, err := m.loadFromFile()
 		if err == nil {
 			store = loadBackup
 		} else {
@@ -43,64 +42,62 @@ func New(cfg *config.Config) *MemRepository {
 	return m
 }
 
-func (m *MemRepository) StoreGaugeMetric(name string, value float64) error {
+func (m *MemRepository) createOrUpdateMetric(metric *common.Metrics) {
+	val, ok := m.storage[metric.ID]
+	if !ok {
+		m.storage[metric.ID] = metric
+		return
+	}
+	switch metric.MType {
+	case GAUGE:
+		*m.storage[metric.ID] = *metric
+	case COUNTER:
+		m.storage[metric.ID].Delta = common.SumDelta(val.Delta, metric.Delta)
+		*metric.Delta = *m.storage[metric.ID].Delta
+	}
+}
+
+func (m *MemRepository) StoreMetric(metric *common.Metrics) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.storage[name] = &shared.Metrics{
-		ID:    name,
-		MType: GAUGE,
-		Value: &value,
-	}
+	m.createOrUpdateMetric(metric)
 	if m.cfg.StoreInterval == 0 {
 		m.store()
 	}
 	return nil
 }
 
-func (m *MemRepository) StoreCounterMetric(name string, value int64) error {
+func (m *MemRepository) StoreBatchMetric(metrics []*common.Metrics) ([]*common.Metrics, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	val, ok := m.storage[name]
-	if !ok {
-		m.storage[name] = &shared.Metrics{
-			ID:    name,
-			MType: COUNTER,
-			Delta: &value,
-		}
-		return nil
+	for _, metric := range metrics {
+		m.createOrUpdateMetric(metric)
 	}
-	valInt := *val.Delta + value
-	m.storage[name].Delta = &valInt
 	if m.cfg.StoreInterval == 0 {
 		m.store()
 	}
+	return metrics, nil
+}
+
+func (m *MemRepository) GetMetric(metric *common.Metrics) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	val, ok := m.storage[metric.ID]
+	if !ok {
+		return errors.New("metric not found")
+	}
+	*metric = *val
 	return nil
 }
 
-func (m *MemRepository) GetGaugeMetric(name string) (float64, error) {
+func (m *MemRepository) GetListMetrics() ([]*common.Metrics, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	metric, ok := m.storage[name]
-	if !ok {
-		return 0.0, fmt.Errorf("metric not found")
+	sliceStorage := make([]*common.Metrics, 0, len(m.storage))
+	for _, v := range m.storage {
+		sliceStorage = append(sliceStorage, v)
 	}
-	return *metric.Value, nil
-}
-
-func (m *MemRepository) GetCounterMetric(name string) (int64, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	metric, ok := m.storage[name]
-	if !ok {
-		return 0.0, fmt.Errorf("metric not found")
-	}
-	return *metric.Delta, nil
-}
-
-func (m *MemRepository) GetAllMetrics() (map[string]*shared.Metrics, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.storage, nil
+	return sliceStorage, nil
 }
 
 func (m *MemRepository) store() {
@@ -137,7 +134,7 @@ func (m *MemRepository) Stash() {
 	}
 }
 
-func (m *MemRepository) LoadFromFile() (map[string]*shared.Metrics, error) {
+func (m *MemRepository) loadFromFile() (map[string]*common.Metrics, error) {
 	file, err := os.Open(m.cfg.FileStoragePath)
 	if err != nil {
 		return nil, err
@@ -149,13 +146,13 @@ func (m *MemRepository) LoadFromFile() (map[string]*shared.Metrics, error) {
 		}
 	}()
 	scn := bufio.NewScanner(file)
-	metrics := make(map[string]*shared.Metrics)
+	metrics := make(map[string]*common.Metrics)
 	for scn.Scan() {
 		line := scn.Bytes()
 		if len(line) == 0 {
 			continue
 		}
-		metric := shared.NewMetrics()
+		metric := new(common.Metrics)
 		if err := easyjson.Unmarshal(line, metric); err != nil {
 			return nil, err
 		}
@@ -168,13 +165,4 @@ func (m *MemRepository) Close() {}
 
 func (m *MemRepository) HealthCheck(ctx context.Context) error {
 	return errors.New("no connect to database")
-}
-
-func (m *MemRepository) StoreBatchMetric(metricSlice []*shared.Metrics) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	for _, metric := range metricSlice {
-		m.storage[metric.ID] = metric
-	}
-	return nil
 }

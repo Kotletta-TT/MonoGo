@@ -5,10 +5,11 @@ import (
 	"log"
 	"math"
 	"net/url"
+	"time"
 
 	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
 	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
-	"github.com/Kotletta-TT/MonoGo/internal/shared"
+	"github.com/Kotletta-TT/MonoGo/internal/common"
 	"github.com/go-resty/resty/v2"
 	"github.com/mailru/easyjson"
 )
@@ -22,7 +23,7 @@ const (
 
 type metricsStore interface {
 	GetMetrics() map[string]*entity.Value
-	GetMetricsSlice() []*shared.Metrics
+	GetMetricsSlice() []*common.Metrics
 }
 
 type Sender interface {
@@ -38,12 +39,21 @@ type HTTPSender struct {
 type TextPlainSender HTTPSender
 type JSONSender HTTPSender
 
+func NewRestyClient() *resty.Client {
+
+	client := resty.New()
+	client.SetRetryCount(3)
+	client.SetRetryWaitTime(1 * time.Second)
+	client.SetRetryMaxWaitTime(5 * time.Second)
+	return client
+}
+
 func NewHTTPSender(repo metricsStore, cfg *config.Config) Sender {
 	switch cfg.SendType {
 	case JSON:
-		return &JSONSender{repo: repo, client: resty.New(), cfg: cfg}
+		return &JSONSender{repo: repo, client: NewRestyClient(), cfg: cfg}
 	case TEXT:
-		return &TextPlainSender{repo: repo, client: resty.New(), cfg: cfg}
+		return &TextPlainSender{repo: repo, client: NewRestyClient(), cfg: cfg}
 	default:
 		panic("Send type unknown")
 	}
@@ -76,8 +86,8 @@ func (h *TextPlainSender) Send() {
 	}
 }
 
-func JSONMetricFabric(name string, value *entity.Value) *shared.Metrics {
-	m := shared.NewMetrics()
+func JSONMetricFabric(name string, value *entity.Value) *common.Metrics {
+	m := new(common.Metrics)
 	m.ID = name
 	switch value.Kind {
 	case entity.KindGauge:
@@ -95,7 +105,7 @@ func JSONMetricFabric(name string, value *entity.Value) *shared.Metrics {
 	}
 }
 
-func (j *JSONSender) prepareBody(m ...*shared.Metrics) ([]byte, error) {
+func (j *JSONSender) prepareBody(m ...*common.Metrics) ([]byte, error) {
 	var mBytes []byte
 	var err error
 	switch len(m) {
@@ -104,7 +114,7 @@ func (j *JSONSender) prepareBody(m ...*shared.Metrics) ([]byte, error) {
 	case 1:
 		mBytes, err = easyjson.Marshal(m[0])
 	default:
-		mArray := shared.SliceMetrics(m)
+		mArray := common.SliceMetrics(m)
 		mBytes, err = easyjson.Marshal(mArray)
 	}
 	if err != nil {
@@ -112,7 +122,7 @@ func (j *JSONSender) prepareBody(m ...*shared.Metrics) ([]byte, error) {
 	}
 	switch j.cfg.Compress {
 	case "gzip":
-		return shared.GzipCompress(mBytes)
+		return common.GzipCompress(mBytes)
 	default:
 		return mBytes, nil
 	}

@@ -1,8 +1,15 @@
-package shared
+package common
 
-import "github.com/mailru/easyjson"
+import (
+	"github.com/mailru/easyjson"
+)
 
-//go:generate easyjson -all internal/shared/metrics.go
+//go:generate easyjson -all internal/common/metrics.go
+
+const (
+	GAUGE   = "gauge"
+	COUNTER = "counter"
+)
 
 type Metrics struct {
 	ID    string   `json:"id"`              // имя метрики
@@ -11,8 +18,11 @@ type Metrics struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
-func NewMetrics() *Metrics {
-	return &Metrics{}
+func NewMetric(name string, mType string) *Metrics {
+	return &Metrics{
+		ID:    name,
+		MType: mType,
+	}
 }
 
 func (m *Metrics) String() string {

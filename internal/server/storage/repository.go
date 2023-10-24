@@ -4,24 +4,22 @@ import (
 	"context"
 
 	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
+	"github.com/Kotletta-TT/MonoGo/internal/common"
 	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
 	"github.com/Kotletta-TT/MonoGo/internal/server/storage/memory"
 	"github.com/Kotletta-TT/MonoGo/internal/server/storage/postgres"
-	"github.com/Kotletta-TT/MonoGo/internal/shared"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// Данный интерфейс отображает на мой взгляд самый быстрый способ получения и заполнения данных,
+// Сокращает объем кода, и использует мало памяти, засчет эффективного переиспользования структур и типов данных.
 type Repository interface {
-	StoreGaugeMetric(name string, value float64) error
-	StoreCounterMetric(name string, value int64) error
-	GetGaugeMetric(name string) (float64, error)
-	GetCounterMetric(name string) (int64, error)
-	GetAllMetrics() (map[string]*shared.Metrics, error)
-	LoadFromFile() (map[string]*shared.Metrics, error)
-	Stash()
-	Close()
+	StoreMetric(metric *common.Metrics) error
+	StoreBatchMetric(metrics []*common.Metrics) ([]*common.Metrics, error)
+	GetMetric(metric *common.Metrics) error
+	GetListMetrics() ([]*common.Metrics, error)
 	HealthCheck(ctx context.Context) error
-	StoreBatchMetric(metricSlice []*shared.Metrics) error
+	Close()
 }
 
 func GetRepo(cfg *config.Config) Repository {
@@ -29,7 +27,9 @@ func GetRepo(cfg *config.Config) Repository {
 	if cfg.DatabaseDSN == "" || err != nil {
 		logger.Infof("Connect to database error: %s", err)
 		logger.Info("Repo: MemoryStorage")
-		return memory.New(cfg)
+		repo := memory.New(cfg)
+		go repo.Stash()
+		return repo
 	}
 	logger.Info("Repo: PostgreSQL")
 	return repo

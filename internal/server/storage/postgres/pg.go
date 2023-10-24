@@ -2,26 +2,43 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
+	"github.com/Kotletta-TT/MonoGo/internal/common"
 	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
-	"github.com/Kotletta-TT/MonoGo/internal/shared"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Database struct {
-	db    *sql.DB
-	cache map[string]*shared.Metrics
-	mu    sync.Mutex
-}
+const insertQueryMetric = `
+INSERT INTO metrics (name, mtype, value, delta)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (name)
+DO UPDATE SET
+	value = EXCLUDED.value,
+	delta = metrics.delta + EXCLUDED.delta
+RETURNING name, mtype, value, delta
+`
+const insertQueryMetrics = `
+	INSERT INTO metrics (name, mtype, value, delta)
+	VALUES %s
+	ON CONFLICT (name)
+	DO UPDATE SET 
+		value = EXCLUDED.value,
+		delta = metrics.delta + EXCLUDED.delta
+	RETURNING name, mtype, value, delta
+`
 
-const GAUGE = "gauge"
-const COUNTER = "counter"
+const selectQueryMetric = `SELECT name, mtype, value, delta FROM metrics WHERE name = $1 AND mtype = $2`
+const selectQueryMetrics = `SELECT * FROM metrics`
 
-const initCacheQuery = `SELECT name FROM metrics`
+const insertQueryMetricStart = `INSERT INTO metrics (name, mtype, value, delta) VALUES `
+const insertQueryMetricEnd = ` ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value, delta = metrics.delta + EXCLUDED.delta RETURNING name, mtype, value, delta`
 
 const createTableQuery = `
 	CREATE TABLE 
@@ -32,208 +49,151 @@ const createTableQuery = `
 	delta BIGINT,
 	PRIMARY KEY (name));`
 
-const insertQueryGauge = `
-	INSERT INTO metrics (name, mtype, value)
-	VALUES ($1, $2, $3)
-	ON CONFLICT (name)
-	DO UPDATE SET value = EXCLUDED.value`
-
-const insertQueryCounter = `
-	INSERT INTO metrics (name, mtype, delta) 
-	VALUES ($1, $2, $3)
-	ON CONFLICT (name)
-	DO UPDATE SET delta = EXCLUDED.delta`
-
-const insertBatchQuery = `
-	INSERT INTO metrics (name, mtype, value, delta)
-	VALUES %s
-	ON CONFLICT (name)
-	DO UPDATE SET (value, delta) = (EXCLUDED.value, EXCLUDED.delta)
-`
-
-const selectQueryGauge = `SELECT value FROM metrics WHERE name = $1 AND mtype = $2`
-const selectQueryCounter = `SELECT delta FROM metrics WHERE name = $1 AND mtype = $2`
-const selectAllMetrics = `SELECT name, mtype, value, delta FROM metrics`
+type Database struct {
+	cfg    *config.Config
+	pgPool *pgxpool.Pool
+	ctx    context.Context
+}
 
 func New(cfg *config.Config) (*Database, error) {
-	db, err := sql.Open("pgx", cfg.DatabaseDSN)
+	ctx := context.Background()
+	pgConn, err := pgxpool.New(ctx, cfg.DatabaseDSN)
 	if err != nil {
 		return nil, err
 	}
-	d := &Database{db: db, cache: make(map[string]*shared.Metrics), mu: sync.Mutex{}}
-	logger.Info("Create table")
-	err = d.initTable()
+	err = pgConn.Ping(ctx)
 	if err != nil {
 		return nil, err
 	}
-	err = d.db.Ping()
-	if err != nil {
-		return nil, err
-	}
-	err = d.initCache()
-	if err != nil {
-		return nil, err
-	}
-	return d, nil
+	pgConn.Exec(ctx, createTableQuery)
+	return &Database{
+		pgPool: pgConn,
+		cfg:    cfg,
+		ctx:    ctx,
+	}, nil
 }
 
-func (d *Database) initCache() error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	cache, err := d.GetAllMetrics()
-	if err != nil {
-		return err
-	}
-	d.cache = cache
-	return nil
-}
-
-func (d *Database) initTable() error {
-	if _, err := d.db.Exec(createTableQuery); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (d *Database) StoreGaugeMetric(name string, value float64) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	_, err := d.db.Exec(insertQueryGauge, name, GAUGE, value)
-	if err != nil {
-		return err
-	}
-	d.cache[name] = &shared.Metrics{ID: name, MType: COUNTER, Value: &value}
-	return nil
-}
-
-func (d *Database) StoreCounterMetric(name string, value int64) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	m, ok := d.cache[name]
-	var newValue int64
-	if ok {
-		newValue = *m.Delta + value
-	}
-	_, err := d.db.Exec(insertQueryCounter, name, COUNTER, newValue)
-	if err != nil {
-		return err
-	}
-	d.cache[name] = &shared.Metrics{ID: name, MType: COUNTER, Delta: &newValue}
-	return nil
-}
-
-func (d *Database) GetGaugeMetric(name string) (float64, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	m, ok := d.cache[name]
-	if ok {
-		return *m.Value, nil
-	}
-	row := d.db.QueryRow(selectQueryGauge, name, GAUGE)
-	if row.Err() != nil {
-		return 0, row.Err()
-	}
-	var value float64
-	err := row.Scan(&value)
-	if err != nil {
-		return 0, err
-	}
-	return value, nil
-}
-
-func (d *Database) GetCounterMetric(name string) (int64, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	m, ok := d.cache[name]
-	if ok {
-		return *m.Delta, nil
-	}
-	row := d.db.QueryRow(selectQueryCounter, name, COUNTER)
-	if row.Err() != nil {
-		return 0, row.Err()
-	}
-	var delta int64
-	err := row.Scan(&delta)
-	if err != nil {
-		return 0, err
-	}
-	return delta, nil
-}
-
-func (d *Database) GetAllMetrics() (map[string]*shared.Metrics, error) {
-	rows, err := d.db.Query(selectAllMetrics)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-	metrics := make(map[string]*shared.Metrics)
-	for rows.Next() {
-		var name, mtype string
-		var value sql.NullFloat64
-		var delta sql.NullInt64
-		err = rows.Scan(&name, &mtype, &value, &delta)
-		if err != nil {
-			return nil, err
+func (d *Database) WrapPgError(pgFunc func() error) error {
+	var err error
+	attempt := 3
+	timeoutRerun := 1
+	for i := 0; i <= attempt; i++ {
+		err = pgFunc()
+		if err == nil {
+			break
 		}
-		metrics[name] = &shared.Metrics{
-			ID:    name,
-			MType: mtype,
-		}
-		if value.Valid {
-			metrics[name].Value = &value.Float64
-		}
-		if delta.Valid {
-			metrics[name].Delta = &delta.Int64
-		}
-	}
-	return metrics, nil
-}
-
-func (d *Database) LoadFromFile() (map[string]*shared.Metrics, error) {
-	return nil, nil
-}
-
-func (d *Database) Stash() {}
-
-func (d *Database) Close() {
-	d.db.Close()
-}
-
-func (d *Database) HealthCheck(ctx context.Context) error {
-	return d.db.PingContext(ctx)
-}
-
-func (d *Database) StoreBatchMetric(metricSlice []*shared.Metrics) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	for _, metric := range metricSlice {
-		cacheMetric, ok := d.cache[metric.ID]
-		if !ok {
-			d.cache[metric.ID] = metric
+		var pgError *pgx.PgError
+		if errors.As(err, &pgError) && pgerrcode.IsConnectionException(pgError.Code) {
+			logger.Errorf("Connect to database error: %s attempt %d", err, i+1)
+			time.Sleep(time.Duration(time.Second * time.Duration(timeoutRerun)))
+			timeoutRerun += 2
 			continue
 		}
-		if cacheMetric.MType == COUNTER {
-			newValue := *cacheMetric.Delta + *metric.Delta
-			d.cache[metric.ID].Delta = &newValue
-		}
-		d.cache[metric.ID].Value = metric.Value
-
+		return err
 	}
-	valuesQuery := make([]string, 0, len(metricSlice))
-	valuesArgs := make([]interface{}, 0, len(metricSlice)*4)
+	return err
+}
+
+func (d *Database) StoreMetric(metric *common.Metrics) error {
+	return d.WrapPgError(func() error {
+		row := d.pgPool.QueryRow(d.ctx, insertQueryMetric, metric.ID, metric.MType, metric.Value, metric.Delta)
+		err := row.Scan(&metric.ID, &metric.MType, &metric.Value, &metric.Delta)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (d *Database) makeInsertBatchQueryValues(metrics []*common.Metrics) (string, []interface{}) {
+	valuesQuery := make([]string, 0, len(metrics))
+	valuesArgs := make([]interface{}, 0, len(metrics)*4)
 	i := 1
-	for _, metric := range d.cache {
+	for _, metric := range metrics {
 		valuesQuery = append(valuesQuery, fmt.Sprintf("($%d, $%d, $%d, $%d)", i, i+1, i+2, i+3))
 		i += 4
 		valuesArgs = append(valuesArgs, metric.ID, metric.MType, metric.Value, metric.Delta)
 	}
-	insertBatchQuery := fmt.Sprintf(insertBatchQuery, strings.Join(valuesQuery, ", "))
-	_, err := d.db.Exec(insertBatchQuery, valuesArgs...)
+	return insertQueryMetricStart + strings.Join(valuesQuery, ", ") + insertQueryMetricEnd, valuesArgs
+}
+
+func (d *Database) StoreBatchMetric(metrics []*common.Metrics) ([]*common.Metrics, error) {
+	var resultMetrics []*common.Metrics
+	err := d.WrapPgError(func() error {
+		var errs error
+		if len(metrics) == 0 {
+			errs = fmt.Errorf("metrics can't be empty")
+			return errs
+		}
+		compiledQuery, compiledValues := d.makeInsertBatchQueryValues(metrics)
+		rows, errs := d.pgPool.Query(d.ctx, compiledQuery, compiledValues...)
+		if errs != nil {
+			return errs
+		}
+		defer rows.Close()
+		resultMetrics = make([]*common.Metrics, 0, len(metrics))
+		for rows.Next() {
+			m := new(common.Metrics)
+			errs = rows.Scan(&m.ID, &m.MType, &m.Value, &m.Delta)
+			if errs != nil {
+				return errs
+			}
+			if rows.Err() != nil {
+				return rows.Err()
+			}
+			resultMetrics = append(resultMetrics, m)
+		}
+		return nil
+	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return resultMetrics, nil
+}
+
+func (d *Database) GetMetric(metric *common.Metrics) error {
+	return d.WrapPgError(func() error {
+		err := d.pgPool.QueryRow(d.ctx, selectQueryMetric, metric.ID, metric.MType).Scan(&metric.ID, &metric.MType, &metric.Value, &metric.Delta)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func (d *Database) GetListMetrics() ([]*common.Metrics, error) {
+	var metrics []*common.Metrics
+	err := d.WrapPgError(func() error {
+		var errs error
+		rows, errs := d.pgPool.Query(d.ctx, selectQueryMetrics)
+		if errs != nil {
+			return errs
+		}
+		defer rows.Close()
+		metrics = make([]*common.Metrics, 0, 10)
+		for rows.Next() {
+			m := new(common.Metrics)
+			errs = rows.Scan(&m.ID, &m.MType, &m.Value, &m.Delta)
+			if errs != nil {
+				return errs
+			}
+			if rows.Err() != nil {
+				return rows.Err()
+			}
+			metrics = append(metrics, m)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return metrics, nil
+}
+
+func (d *Database) HealthCheck(ctx context.Context) error {
+	return d.pgPool.Ping(ctx)
+}
+
+func (d *Database) Close() {
+	d.pgPool.Close()
 }

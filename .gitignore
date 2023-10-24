@@ -27,3 +27,5 @@ metricstest
 random
 statictest
 .env
+tempfile.json
+internal/server/storage/postgres/pg_test.go
