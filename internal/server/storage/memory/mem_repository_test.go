@@ -1,9 +1,10 @@
-package storage
+package memory
 
 import (
+	"testing"
+
 	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestMemRepository_StoreGaugeMetric(t *testing.T) {

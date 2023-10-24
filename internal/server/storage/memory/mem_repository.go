@@ -1,7 +1,9 @@
-package storage
+package memory
 
 import (
 	"bufio"
+	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -19,23 +21,13 @@ const (
 	COUNTER = "counter"
 )
 
-type Repository interface {
-	StoreGaugeMetric(name string, value float64)
-	StoreCounterMetric(name string, value int64)
-	GetGaugeMetric(name string) (float64, error)
-	GetCounterMetric(name string) (int64, error)
-	GetAllMetrics() map[string]*shared.Metrics
-	LoadFromFile() (map[string]*shared.Metrics, error)
-	Stash()
-}
-
 type MemRepository struct {
 	mu      sync.Mutex
 	storage map[string]*shared.Metrics
 	cfg     *config.Config
 }
 
-func New(cfg *config.Config) Repository {
+func New(cfg *config.Config) *MemRepository {
 	store := make(map[string]*shared.Metrics)
 	m := &MemRepository{mu: sync.Mutex{}, cfg: cfg}
 	if cfg.Restore {
@@ -168,4 +160,10 @@ func (m *MemRepository) LoadFromFile() (map[string]*shared.Metrics, error) {
 		metrics[metric.ID] = metric
 	}
 	return metrics, err
+}
+
+func (m *MemRepository) Close() {}
+
+func (m *MemRepository) HealthCheck(ctx context.Context) error {
+	return errors.New("no connect to database")
 }

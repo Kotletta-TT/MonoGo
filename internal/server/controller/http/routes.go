@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"database/sql"
 	"io"
 	"net/http"
 	"time"
@@ -168,11 +167,11 @@ func GetJSONMetric(repo storage.Repository) func(ctx *gin.Context) {
 	}
 }
 
-func PingDB(db *sql.DB) func(ctx *gin.Context) {
+func PingDB(repo storage.Repository) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
-		dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		pingCtx, cancel := context.WithTimeout(ctx.Request.Context(), 1*time.Second)
 		defer cancel()
-		err := db.PingContext(dbCtx)
+		err := repo.HealthCheck(pingCtx)
 		if err != nil {
 			ctx.Writer.WriteHeader(http.StatusInternalServerError)
 			return

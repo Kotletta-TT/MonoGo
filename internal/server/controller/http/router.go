@@ -1,13 +1,11 @@
 package http
 
 import (
-	"database/sql"
-
 	"github.com/Kotletta-TT/MonoGo/internal/server/storage"
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(repo storage.Repository, db *sql.DB) *gin.Engine {
+func NewRouter(repo storage.Repository) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.RedirectTrailingSlash = false
@@ -20,6 +18,6 @@ func NewRouter(repo storage.Repository, db *sql.DB) *gin.Engine {
 	engine.POST("/value/", GetJSONMetric(repo))
 	engine.POST("/update/:metricType/:metric/:value", SetMetric(repo))
 	engine.POST("/update/", SetJSONMetric(repo))
-	engine.GET("/ping", PingDB(db))
+	engine.GET("/ping", PingDB(repo))
 	return engine
 }
