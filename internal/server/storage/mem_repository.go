@@ -127,6 +127,7 @@ func (m *MemRepository) store() {
 		_, err = file.WriteString(v.String() + "\n")
 		if err != nil {
 			logger.Error(err)
+
 			continue
 		}
 	}

@@ -1,13 +1,17 @@
 package http
 
 import (
+	"context"
+	"database/sql"
+	"io"
+	"net/http"
+	"time"
+
 	"github.com/Kotletta-TT/MonoGo/internal/server/storage"
 	"github.com/Kotletta-TT/MonoGo/internal/server/usecase"
 	"github.com/Kotletta-TT/MonoGo/internal/shared"
 	"github.com/gin-gonic/gin"
 	"github.com/mailru/easyjson"
-	"io"
-	"net/http"
 )
 
 const (
@@ -33,6 +37,7 @@ func GetGaugeMetric(repo storage.Repository) func(ctx *gin.Context) {
 		value, err := repo.GetGaugeMetric(mName)
 		if err != nil {
 			ctx.Writer.WriteHeader(http.StatusNotFound)
+
 			return
 		}
 		byteMetric := usecase.TextPlainGaugeMetric(value)
@@ -49,6 +54,7 @@ func GetCounterMetric(repo storage.Repository) func(ctx *gin.Context) {
 		value, err := repo.GetCounterMetric(mName)
 		if err != nil {
 			ctx.Writer.WriteHeader(http.StatusNotFound)
+
 			return
 		}
 		byteMetric := usecase.TextPlainCounterMetrics(value)
@@ -159,5 +165,18 @@ func GetJSONMetric(repo storage.Repository) func(ctx *gin.Context) {
 		default:
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid metric type"})
 		}
+	}
+}
+
+func PingDB(db *sql.DB) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		dbCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+		err := db.PingContext(dbCtx)
+		if err != nil {
+			ctx.Writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		ctx.Writer.WriteHeader(http.StatusOK)
 	}
 }
