@@ -2,8 +2,9 @@ package usecase
 
 import (
 	"fmt"
-	"github.com/Kotletta-TT/MonoGo/internal/shared"
 	"strconv"
+
+	"github.com/Kotletta-TT/MonoGo/internal/common"
 )
 
 const (
@@ -11,25 +12,43 @@ const (
 	COUNTER = "counter"
 )
 
-func TextPlainMetrics(metrics map[string]*shared.Metrics) []byte {
+func FabricGaugeMetric(name string, value float64) *common.Metrics {
+	return &common.Metrics{
+		ID:    name,
+		MType: "gauge",
+		Value: &value,
+	}
+}
+
+func FabricCounterMetric(name string, delta int64) *common.Metrics {
+	return &common.Metrics{
+		ID:    name,
+		MType: "counter",
+		Delta: &delta,
+	}
+}
+
+func TextPlainMetrics(metrics []*common.Metrics) []byte {
 	textPlain := make([]byte, 0, 1024)
-	for k, v := range metrics {
+	for _, v := range metrics {
 		switch v.MType {
 		case GAUGE:
 			stringValue := strconv.FormatFloat(*v.Value, 'f', -1, 64)
-			textPlain = append(textPlain, []byte(fmt.Sprintf("%s %s\r\n", k, stringValue))...)
+			textPlain = append(textPlain, []byte(fmt.Sprintf("%s %s\r\n", v.ID, stringValue))...)
 		case COUNTER:
-			textPlain = append(textPlain, []byte(fmt.Sprintf("%s %d\r\n", k, *v.Delta))...)
+			textPlain = append(textPlain, []byte(fmt.Sprintf("%s %d\r\n", v.ID, *v.Delta))...)
 		}
 	}
 	return textPlain
 }
 
-func TextPlainGaugeMetric(value float64) []byte {
-	stringValue := strconv.FormatFloat(value, 'f', -1, 64)
-	return []byte(fmt.Sprintf("%s\r\n", stringValue))
-}
-
-func TextPlainCounterMetrics(value int64) []byte {
-	return []byte(fmt.Sprintf("%d\r\n", value))
+func TextPlainMetric(metric *common.Metrics) []byte {
+	switch metric.MType {
+	case GAUGE:
+		stringValue := strconv.FormatFloat(*metric.Value, 'f', -1, 64)
+		return []byte(fmt.Sprintf("%s\r\n", stringValue))
+	case COUNTER:
+		return []byte(fmt.Sprintf("%d\r\n", *metric.Delta))
+	}
+	return nil
 }

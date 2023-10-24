@@ -6,13 +6,13 @@ import (
 	"sync"
 
 	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
-	"github.com/Kotletta-TT/MonoGo/internal/shared"
+	"github.com/Kotletta-TT/MonoGo/internal/common"
 )
 
 type AgentRepository interface {
 	StoreMetrics(map[string]*entity.Value)
 	GetMetrics() map[string]*entity.Value
-	GetMetricsSlice() []*shared.Metrics
+	GetMetricsSlice() []*common.Metrics
 }
 
 type MemAgentRepository struct {
@@ -54,11 +54,11 @@ func (m *MemAgentRepository) GetMetrics() map[string]*entity.Value {
 	return maps.Clone(m.storage)
 }
 
-func (m *MemAgentRepository) GetMetricsSlice() []*shared.Metrics {
+func (m *MemAgentRepository) GetMetricsSlice() []*common.Metrics {
 	oldMetrics := m.GetMetrics()
-	metrics := make([]*shared.Metrics, 0, len(oldMetrics))
+	metrics := make([]*common.Metrics, 0, len(oldMetrics))
 	for k, v := range oldMetrics {
-		newMetric := &shared.Metrics{ID: k}
+		newMetric := &common.Metrics{ID: k}
 		switch v.Kind {
 		case entity.KindCounter:
 			newMetric.MType = "counter"
