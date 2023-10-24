@@ -43,7 +43,7 @@ func New(cfg *config.Config) *MemRepository {
 	return m
 }
 
-func (m *MemRepository) StoreGaugeMetric(name string, value float64) {
+func (m *MemRepository) StoreGaugeMetric(name string, value float64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.storage[name] = &shared.Metrics{
@@ -54,9 +54,10 @@ func (m *MemRepository) StoreGaugeMetric(name string, value float64) {
 	if m.cfg.StoreInterval == 0 {
 		m.store()
 	}
+	return nil
 }
 
-func (m *MemRepository) StoreCounterMetric(name string, value int64) {
+func (m *MemRepository) StoreCounterMetric(name string, value int64) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	val, ok := m.storage[name]
@@ -66,13 +67,14 @@ func (m *MemRepository) StoreCounterMetric(name string, value int64) {
 			MType: COUNTER,
 			Delta: &value,
 		}
-		return
+		return nil
 	}
 	valInt := *val.Delta + value
 	m.storage[name].Delta = &valInt
 	if m.cfg.StoreInterval == 0 {
 		m.store()
 	}
+	return nil
 }
 
 func (m *MemRepository) GetGaugeMetric(name string) (float64, error) {
@@ -95,10 +97,10 @@ func (m *MemRepository) GetCounterMetric(name string) (int64, error) {
 	return *metric.Delta, nil
 }
 
-func (m *MemRepository) GetAllMetrics() map[string]*shared.Metrics {
+func (m *MemRepository) GetAllMetrics() (map[string]*shared.Metrics, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.storage
+	return m.storage, nil
 }
 
 func (m *MemRepository) store() {
@@ -166,4 +168,13 @@ func (m *MemRepository) Close() {}
 
 func (m *MemRepository) HealthCheck(ctx context.Context) error {
 	return errors.New("no connect to database")
+}
+
+func (m *MemRepository) StoreBatchMetric(metricSlice []*shared.Metrics) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, metric := range metricSlice {
+		m.storage[metric.ID] = metric
+	}
+	return nil
 }
