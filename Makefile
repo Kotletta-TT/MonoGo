@@ -98,6 +98,15 @@ test_13: test_12
             -server-port=${SERVER_PORT} \
             -source-path=.
 
+test_14: test_13
+	./metricstest -test.v -test.run=^TestIteration14$$ \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -database-dsn='postgres://monogo:monogo@localhost:5432/monogodb?sslmode=disable' \
+            -key="${TEMP_FILE}" \
+            -server-port=${SERVER_PORT} \
+            -source-path=.
+
 
 run_serv:
 	ADDRESS="${ADDRESS}" LOG_LEVEL="${LOG_LEVEL}" LOG_PATH="${LOG_PATH}" go run cmd/server/main.go

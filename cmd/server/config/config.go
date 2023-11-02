@@ -15,6 +15,7 @@ type Config struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
 	DatabaseDSN     string `env:"DATABASE_DSN"`
+	HashKey         string `env:"KEY"`
 }
 
 func NewConfig() *Config {
@@ -27,6 +28,7 @@ func NewConfig() *Config {
 	flag.StringVar(&config.FileStoragePath, "f", "/tmp/metrics-db.json", "File storage path")
 	flag.BoolVar(&config.Restore, "r", true, "Restore from file")
 	flag.StringVar(&config.DatabaseDSN, "d", "", "DB URL example: postgres://username:password@localhost:5432/database_name")
+	flag.StringVar(&config.HashKey, "k", "", "Hash key for signing data")
 	flag.Parse()
 	err := env.Parse(&config)
 	if err != nil {

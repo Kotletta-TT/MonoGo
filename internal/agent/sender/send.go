@@ -105,8 +105,9 @@ func JSONMetricFabric(name string, value *entity.Value) *common.Metrics {
 	}
 }
 
-func (j *JSONSender) prepareBody(m ...*common.Metrics) ([]byte, error) {
+func (j *JSONSender) prepareBody(m ...*common.Metrics) ([]byte, string, error) {
 	var mBytes []byte
+	var sign string
 	var err error
 	switch len(m) {
 	case 0:
@@ -118,13 +119,37 @@ func (j *JSONSender) prepareBody(m ...*common.Metrics) ([]byte, error) {
 		mBytes, err = easyjson.Marshal(mArray)
 	}
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	switch j.cfg.Compress {
-	case "gzip":
-		return common.GzipCompress(mBytes)
-	default:
-		return mBytes, nil
+	if j.cfg.HashKey != "" {
+		sign, err = common.CreateHMACSignature(j.cfg.HashKey, mBytes)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+	if j.cfg.Compress == "gzip" {
+		compressBytes, err := common.GzipCompress(mBytes)
+		if err != nil {
+			return nil, "", err
+		}
+		mBytes = compressBytes
+	}
+	return mBytes, sign, nil
+}
+
+func (j *JSONSender) reciveResponse(resp *resty.Response, err error) {
+	if err != nil && err != io.EOF {
+		log.Printf("error: Code: %d, Body: %s err: %s\n", resp.StatusCode(), resp.String(), err.Error())
+		return
+	}
+	if j.cfg.HashKey != "" {
+		if err := common.VerifyHMACSignature(resp.Header().Get("HashSHA256"), j.cfg.HashKey, resp.Body()); err != nil {
+			log.Printf("error: Code: %d, Body: %s err: %s\n", resp.StatusCode(), resp.String(), err.Error())
+			return
+		}
+	}
+	if resp.StatusCode() != 200 {
+		log.Printf("error: Code: %d, Body: %s\n", resp.StatusCode(), resp.String())
 	}
 }
 
@@ -141,36 +166,31 @@ func (j *JSONSender) Send() {
 	case true:
 		metrics := j.repo.GetMetricsSlice()
 		sendURL = url.URL{Host: j.cfg.ServerHost, Scheme: "http", Path: "/updates/"}
-		mJSON, err := j.prepareBody(metrics...)
+		mJSON, sign, err := j.prepareBody(metrics...)
 		if err != nil {
-			panic(err)
+			log.Printf("prepare body err: %s\n", err.Error())
+			return
+		}
+		if j.cfg.HashKey != "" && sign != "" {
+			req.SetHeader("HashSHA256", sign)
 		}
 		req.SetBody(mJSON)
-		resp, err := req.Post(sendURL.String())
-		if err != nil && err != io.EOF {
-			log.Printf("error: Code: %d, Body: %s err: %s\n", resp.StatusCode(), resp.String(), err.Error())
-		}
-		if resp.StatusCode() != 200 {
-			log.Printf("error: Code: %d, Body: %s\n", resp.StatusCode(), resp.String())
-		}
+		j.reciveResponse(req.Post(sendURL.String()))
 	default:
 		metrics := j.repo.GetMetrics()
 		sendURL = url.URL{Host: j.cfg.ServerHost, Scheme: "http", Path: "/update/"}
 		for k, v := range metrics {
 			m := JSONMetricFabric(k, v)
-			mJSON, err := j.prepareBody(m)
+			mJSON, sign, err := j.prepareBody(m)
 			if err != nil {
-				panic(err)
-			}
-			req.SetBody(mJSON)
-			resp, err := req.Post(sendURL.String())
-			if err != nil && err != io.EOF {
-				log.Printf("error: Code: %d, Body: %s err: %s\n", resp.StatusCode(), resp.String(), err.Error())
+				log.Printf("prepare body err: %s\n", err.Error())
 				continue
 			}
-			if resp.StatusCode() != 200 {
-				log.Printf("error: Code: %d, Body: %s\n", resp.StatusCode(), resp.String())
+			if j.cfg.HashKey != "" && sign != "" {
+				req.SetHeader("HashSHA256", sign)
 			}
+			req.SetBody(mJSON)
+			j.reciveResponse(req.Post(sendURL.String()))
 		}
 	}
 }
