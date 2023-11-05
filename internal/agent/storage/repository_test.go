@@ -58,7 +58,7 @@ func TestMemAgentRepository_StoreMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MemAgentRepository{
-				mu:      sync.Mutex{},
+				mu:      sync.RWMutex{},
 				storage: make(map[string]*entity.Value),
 			}
 			genMetrics := MockMetrics(tt.lenGauge, tt.lenCounter)
@@ -116,7 +116,7 @@ func TestMemAgentRepository_GetMetrics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &MemAgentRepository{
-				mu:      sync.Mutex{},
+				mu:      sync.RWMutex{},
 				storage: map[string]*entity.Value{"counter1": tt.metric},
 			}
 			metrics := m.GetMetrics()

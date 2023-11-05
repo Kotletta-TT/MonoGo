@@ -1,6 +1,7 @@
 package sender
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -30,6 +31,12 @@ type Sender interface {
 	Send()
 }
 
+type ResultWork struct {
+	StatusCode int
+	Body       []byte
+	Err        error
+}
+
 type HTTPSender struct {
 	repo   metricsStore
 	client *resty.Client
@@ -40,7 +47,6 @@ type TextPlainSender HTTPSender
 type JSONSender HTTPSender
 
 func NewRestyClient() *resty.Client {
-
 	client := resty.New()
 	client.SetRetryCount(3)
 	client.SetRetryWaitTime(1 * time.Second)
@@ -59,29 +65,48 @@ func NewHTTPSender(repo metricsStore, cfg *config.Config) Sender {
 	}
 }
 
-func (h *TextPlainSender) compileURL(nameMetric string, valueMetric *entity.Value) string {
+func (h *TextPlainSender) compileURL(metric *common.Metrics) string {
 	compileURL := url.URL{Host: h.cfg.ServerHost, Scheme: "http"}
-	switch valueMetric.Kind {
-	case entity.KindGauge:
-		return compileURL.JoinPath("update", GAUGE, nameMetric, valueMetric.String()).String()
-	case entity.KindCounter:
-		return compileURL.JoinPath("update", COUNTER, nameMetric, valueMetric.String()).String()
+	switch metric.MType {
+	case GAUGE:
+		return compileURL.JoinPath("update", GAUGE, metric.ID, fmt.Sprintf("%f", *metric.Value)).String()
+	case COUNTER:
+		return compileURL.JoinPath("update", COUNTER, metric.ID, fmt.Sprintf("%d", *metric.Delta)).String()
 	default:
 		panic("Metric type unknown")
 	}
 }
 
+func (h *TextPlainSender) sendWorker(jobs <-chan *common.Metrics, results chan<- *ResultWork) {
+	for metric := range jobs {
+		sendURL := h.compileURL(metric)
+		log.Printf("Send URL: %s", sendURL)
+		resp, err := h.client.R().Post(sendURL)
+		results <- &ResultWork{StatusCode: resp.StatusCode(), Body: resp.Body(), Err: err}
+	}
+}
+
 func (h *TextPlainSender) Send() {
 	log.Println("Start Text/Plain send metrics")
-	var sendURL string
-	metrics := h.repo.GetMetrics()
-	for k, v := range metrics {
-		sendURL = h.compileURL(k, v)
-		log.Printf("Send URL: %s", sendURL)
-		_, err := h.client.R().Post(sendURL)
-		if err != nil {
-			log.Println(sendURL)
-			panic(err)
+	metrics := h.repo.GetMetricsSlice()
+	jobs := make(chan *common.Metrics, len(metrics))
+	results := make(chan *ResultWork, len(metrics))
+	for i := 0; i < h.cfg.RateLimit; i++ {
+		go h.sendWorker(jobs, results)
+	}
+	for _, metric := range metrics {
+		jobs <- metric
+	}
+	close(jobs)
+	for i := 0; i < len(metrics); i++ {
+		result := <-results
+		if result.Err != nil {
+			log.Printf("Error send metrics: %s\n", result.Err.Error())
+			continue
+		}
+		if result.StatusCode != 200 {
+			log.Printf("Error send metrics: %d\n", result.StatusCode)
+			continue
 		}
 	}
 }
@@ -153,6 +178,28 @@ func (j *JSONSender) reciveResponse(resp *resty.Response, err error) {
 	}
 }
 
+func (j *JSONSender) sendWorker(jobs <-chan *common.Metrics, results chan<- *ResultWork, url string) {
+	for metric := range jobs {
+		req := j.client.R()
+		req.SetHeader("Content-Type", "application/json")
+		if j.cfg.Compress == "gzip" {
+			req.SetHeader("Content-Encoding", "gzip")
+			req.SetHeader("Accept-Encoding", "gzip")
+		}
+		mJSON, sign, err := j.prepareBody(metric)
+		if err != nil {
+			log.Printf("prepare body err: %s\n", err.Error())
+			continue
+		}
+		req.SetBody(mJSON)
+		if j.cfg.HashKey != "" && sign != "" {
+			req.SetHeader("HashSHA256", sign)
+		}
+		resp, err := req.Post(url)
+		results <- &ResultWork{StatusCode: resp.StatusCode(), Body: resp.Body(), Err: err}
+	}
+}
+
 func (j *JSONSender) Send() {
 	var sendURL url.URL
 	log.Println("Start JSON send metrics")
@@ -177,20 +224,27 @@ func (j *JSONSender) Send() {
 		req.SetBody(mJSON)
 		j.reciveResponse(req.Post(sendURL.String()))
 	default:
-		metrics := j.repo.GetMetrics()
+		metrics := j.repo.GetMetricsSlice()
 		sendURL = url.URL{Host: j.cfg.ServerHost, Scheme: "http", Path: "/update/"}
-		for k, v := range metrics {
-			m := JSONMetricFabric(k, v)
-			mJSON, sign, err := j.prepareBody(m)
-			if err != nil {
-				log.Printf("prepare body err: %s\n", err.Error())
+		jobs := make(chan *common.Metrics, len(metrics))
+		results := make(chan *ResultWork, len(metrics))
+		for i := 0; i < j.cfg.RateLimit; i++ {
+			go j.sendWorker(jobs, results, sendURL.String())
+		}
+		for _, metric := range metrics {
+			jobs <- metric
+		}
+		close(jobs)
+		for i := 0; i < len(metrics); i++ {
+			result := <-results
+			if result.Err != nil {
+				log.Printf("Error send metrics: %s\n", result.Err.Error())
 				continue
 			}
-			if j.cfg.HashKey != "" && sign != "" {
-				req.SetHeader("HashSHA256", sign)
+			if result.StatusCode != 200 {
+				log.Printf("Error send metrics: %d\n", result.StatusCode)
+				continue
 			}
-			req.SetBody(mJSON)
-			j.reciveResponse(req.Post(sendURL.String()))
 		}
 	}
 }

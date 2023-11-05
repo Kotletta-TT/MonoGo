@@ -1,12 +1,13 @@
 package app
 
 import (
+	"log"
+	"time"
+
 	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
 	"github.com/Kotletta-TT/MonoGo/internal/agent/collectors"
 	"github.com/Kotletta-TT/MonoGo/internal/agent/sender"
 	"github.com/Kotletta-TT/MonoGo/internal/agent/storage"
-	"log"
-	"time"
 )
 
 func Run(cfg *config.Config) {
@@ -14,6 +15,7 @@ func Run(cfg *config.Config) {
 	collector := collectors.NewCollector(repo)
 	collector.RegisterCollectorMetricFunc(collectors.RuntimeMetricsCollector)
 	collector.RegisterCollectorMetricFunc(collectors.CustomMetricsCollector)
+	collector.RegisterCollectorMetricFunc(collectors.SystemStatsCollector)
 	httpSender := sender.NewHTTPSender(repo, cfg)
 	pollTic := time.NewTicker(time.Second * time.Duration(cfg.PollInterval))
 	reportTic := time.NewTicker(time.Second * time.Duration(cfg.ReportInterval))
