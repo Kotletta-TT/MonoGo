@@ -1,16 +1,18 @@
 package http
 
 import (
+	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
 	"github.com/Kotletta-TT/MonoGo/internal/server/storage"
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(repo storage.Repository) *gin.Engine {
+func NewRouter(repo storage.Repository, cfg *config.Config) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.RedirectTrailingSlash = false
 	engine.Use(RequestResponseLogging())
 	engine.Use(CompressMiddleware())
+	engine.Use(HashSignMiddleWare(cfg))
 	engine.Use(gin.Recovery())
 	engine.GET("/", ListMetrics(repo))
 	engine.GET("/value/:metricType/:metric", GetMetric(repo))

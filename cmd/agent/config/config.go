@@ -13,6 +13,7 @@ type Config struct {
 	SendType       string `env:"SEND_TYPE"`
 	Compress       string `env:"COMPRESS"`
 	BatchSupport   bool   `env:"BATCH_SUPPORT"`
+	HashKey        string `env:"KEY"`
 }
 
 func NewConfig() *Config {
@@ -23,6 +24,7 @@ func NewConfig() *Config {
 	flag.StringVar(&config.SendType, "s", "json", "Send type")
 	flag.StringVar(&config.Compress, "compress", "gzip", "Compress send JSON-data")
 	flag.BoolVar(&config.BatchSupport, "batch", false, "Use batch mode")
+	flag.StringVar(&config.HashKey, "k", "", "Hash key for signing data")
 	flag.Parse()
 	err := env.Parse(&config)
 	if err != nil {

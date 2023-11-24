@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
 	"github.com/Kotletta-TT/MonoGo/internal/server/storage"
 	"github.com/Kotletta-TT/MonoGo/internal/server/usecase"
 	"github.com/gin-gonic/gin"
@@ -122,6 +123,7 @@ func GetJSONMetric(repo storage.Repository) func(ctx *gin.Context) {
 		}
 		err = repo.GetMetric(validMetric)
 		if err != nil {
+			logger.Error(err.Error())
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		}
 		ctx.JSON(http.StatusOK, validMetric)

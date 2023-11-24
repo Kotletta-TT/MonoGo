@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
@@ -10,6 +11,9 @@ import (
 func RequestResponseLogging() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		startTime := time.Now()
+		for header, value := range ctx.Request.Header {
+			fmt.Printf("%s: %s\n", header, value)
+		}
 		ctx.Next()
 		duration := time.Since(startTime)
 		WriteSize := ctx.Writer.Size()
