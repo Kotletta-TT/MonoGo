@@ -16,13 +16,13 @@ type AgentRepository interface {
 }
 
 type MemAgentRepository struct {
-	mu      sync.Mutex
+	mu      sync.RWMutex
 	storage map[string]*entity.Value
 }
 
 func New() *MemAgentRepository {
 	return &MemAgentRepository{
-		mu:      sync.Mutex{},
+		mu:      sync.RWMutex{},
 		storage: make(map[string]*entity.Value),
 	}
 }
@@ -49,8 +49,8 @@ func (m *MemAgentRepository) StoreMetrics(metrics map[string]*entity.Value) {
 }
 
 func (m *MemAgentRepository) GetMetrics() map[string]*entity.Value {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return maps.Clone(m.storage)
 }
 

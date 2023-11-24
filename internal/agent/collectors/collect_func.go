@@ -1,11 +1,15 @@
 package collectors
 
 import (
-	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
 	"log"
 	"math"
 	"math/rand"
 	"runtime"
+	"strconv"
+
+	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/mem"
 )
 
 func RuntimeMetricsCollector(repo collectorStorage) {
@@ -48,4 +52,25 @@ func CustomMetricsCollector(repo collectorStorage) {
 	pollCount := &entity.Value{Metric: uint64(int64(1)), Kind: entity.KindCounter}
 	randValue := &entity.Value{Metric: math.Float64bits(rand.Float64()), Kind: entity.KindGauge}
 	repo.StoreMetrics(map[string]*entity.Value{"PollCount": pollCount, "RandomValue": randValue})
+}
+
+func SystemStatsCollector(repo collectorStorage) {
+	metricMap := make(map[string]*entity.Value)
+	log.Println("start system stats collector")
+	memStats, err := mem.VirtualMemory()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	metricMap["MemTotal"] = &entity.Value{Metric: memStats.Total, Kind: entity.KindGauge}
+	metricMap["MemFree"] = &entity.Value{Metric: memStats.Free, Kind: entity.KindGauge}
+	cpuUtils, err := cpu.Percent(0, true)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	for i, k := range cpuUtils {
+		metricMap["CPUutilization"+strconv.Itoa(i)] = entity.NewValueFromFloat64(k, entity.KindGauge)
+	}
+	repo.StoreMetrics(metricMap)
 }

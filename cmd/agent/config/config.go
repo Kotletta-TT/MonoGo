@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"runtime"
 
 	"github.com/caarlos0/env/v9"
 )
@@ -14,6 +15,7 @@ type Config struct {
 	Compress       string `env:"COMPRESS"`
 	BatchSupport   bool   `env:"BATCH_SUPPORT"`
 	HashKey        string `env:"KEY"`
+	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
 func NewConfig() *Config {
@@ -25,6 +27,7 @@ func NewConfig() *Config {
 	flag.StringVar(&config.Compress, "compress", "gzip", "Compress send JSON-data")
 	flag.BoolVar(&config.BatchSupport, "batch", false, "Use batch mode")
 	flag.StringVar(&config.HashKey, "k", "", "Hash key for signing data")
+	flag.IntVar(&config.RateLimit, "l", runtime.NumCPU(), "Rate limit")
 	flag.Parse()
 	err := env.Parse(&config)
 	if err != nil {
