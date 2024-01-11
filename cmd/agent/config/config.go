@@ -18,6 +18,11 @@ type Config struct {
 	RateLimit      int    `env:"RATE_LIMIT"`
 }
 
+// NewConfig creates a new Config object and initializes its fields
+// based on command-line flags and environment variables.
+//
+// No parameters.
+// Returns a pointer to the newly created Config object.
 func NewConfig() *Config {
 	config := Config{}
 	flag.StringVar(&config.ServerHost, "a", "localhost:8080", "Address:port server")

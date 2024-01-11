@@ -12,6 +12,10 @@ import (
 var logger *zap.SugaredLogger
 var once sync.Once
 
+// Init initializes the application with the given configuration.
+//
+// It takes a pointer to a config.Config struct as a parameter.
+// It does not return anything.
 func Init(config *config.Config) {
 	once.Do(func() {
 		cores := make([]zapcore.Core, 0, 2)
