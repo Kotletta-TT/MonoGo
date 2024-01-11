@@ -1,9 +1,10 @@
 package entity
 
 import (
-	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewValueFromUint64_Gauge(t *testing.T) {

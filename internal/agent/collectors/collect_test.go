@@ -1,9 +1,10 @@
 package collectors
 
 import (
+	"testing"
+
 	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 type MockCollectorStorage struct{}

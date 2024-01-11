@@ -23,6 +23,7 @@ type Metrics struct {
 // Parameters:
 //   - name: the name of the metric
 //   - mType: the type of the metric
+//
 // Returns:
 //   - *Metrics: a pointer to the newly created Metrics object
 func NewMetric(name string, mType string) *Metrics {

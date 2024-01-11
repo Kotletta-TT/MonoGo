@@ -208,9 +208,9 @@ func (j *JSONSender) prepareBody(m ...*common.Metrics) ([]byte, string, error) {
 // receiveResponse is a function that handles the response received from the server.
 //
 // It takes in two parameters:
-// - resp: a pointer to a resty.Response object that represents the server response.
-// - err: an error object that represents any error that occurred during the request.
-//   If err is not nil and not io.EOF, it logs the error message and returns.
+//   - resp: a pointer to a resty.Response object that represents the server response.
+//   - err: an error object that represents any error that occurred during the request.
+//     If err is not nil and not io.EOF, it logs the error message and returns.
 //
 // The function checks if the err is not nil and not io.EOF. If it is, it logs the error message along with the
 // response status code, response body, and the error message itself. Then it returns.

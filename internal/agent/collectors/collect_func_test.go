@@ -1,9 +1,10 @@
 package collectors
 
 import (
+	"testing"
+
 	"github.com/Kotletta-TT/MonoGo/internal/agent/storage"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCustomMetricsCollector(t *testing.T) {

@@ -1,11 +1,12 @@
 package main
 
 import (
+	"net/http"
+	_ "net/http/pprof"
+
 	"github.com/Kotletta-TT/MonoGo/cmd/server/app"
 	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
 	log "github.com/Kotletta-TT/MonoGo/internal/server/logger"
-	"net/http"
-	_ "net/http/pprof"
 )
 
 func main() {
