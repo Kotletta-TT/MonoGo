@@ -2,6 +2,7 @@ package memory
 
 import (
 	"fmt"
+	"reflect"
 	"sync"
 	"testing"
 
@@ -230,6 +231,32 @@ func TestMemRepository_GetListMetrics(t *testing.T) {
 			storage, err := m.GetListMetrics()
 			assert.NoError(t, err)
 			assert.Equal(t, tt.exp, storage)
+		})
+	}
+}
+
+func TestNew(t *testing.T) {
+	type args struct {
+		cfg *config.Config
+	}
+	tests := []struct {
+		name string
+		args args
+		want *MemRepository
+	}{
+		{
+			"Normal",
+			args{
+				cfg: &config.Config{StoreInterval: 1000},
+			},
+			&MemRepository{mu: sync.Mutex{}, storage: make(map[string]*common.Metrics), cfg: &config.Config{StoreInterval: 1000}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := New(tt.args.cfg); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("New() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }

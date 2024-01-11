@@ -26,6 +26,10 @@ type MemRepository struct {
 	cfg     *config.Config
 }
 
+// New creates a new MemRepository instance.
+//
+// It takes a pointer to a config.Config struct as its parameter.
+// It returns a pointer to a MemRepository struct.
 func New(cfg *config.Config) *MemRepository {
 	store := make(map[string]*common.Metrics)
 	m := &MemRepository{mu: sync.Mutex{}, cfg: cfg}

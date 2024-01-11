@@ -107,11 +107,21 @@ test_14: test_13
             -server-port=${SERVER_PORT} \
             -source-path=.
 
+db_init:
+	docker run -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_DB=${POSTGRES_DB} -e POSTGRES_PORT=${POSTGRES_PORT} -d -p 5432:5432 postgres
 
 run_serv:
-	ADDRESS="${ADDRESS}" LOG_LEVEL="${LOG_LEVEL}" LOG_PATH="${LOG_PATH}" go run cmd/server/main.go
+	ADDRESS="${ADDRESS}" LOG_LEVEL="${LOG_LEVEL}" LOG_PATH="${LOG_PATH}" DATABASE_DSN="${DATABASE_DSN}" go run cmd/server/main.go
 
 run_agent:
 	ADDRESS="${ADDRESS}" REPORT_INTERVAL="${REPORT_INTERVAL}" POLL_INTERVAL="${POLL_INTERVAL}" go run cmd/agent/main.go
+
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func coverage.out
+	rm -rf coverage.out
+
+profile:
+	curl http://localhost:8080/debug/pprof/heap\?seconds\=30 -o profiles/rename_me.pprof
 
 .PHONY: build server agent

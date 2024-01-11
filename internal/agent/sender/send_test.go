@@ -5,6 +5,7 @@ import (
 
 	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
 	"github.com/Kotletta-TT/MonoGo/internal/common"
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,4 +53,27 @@ func TestHTTPSender_compileURL(t *testing.T) {
 			assert.Equalf(t, tt.want, h.compileURL(tt.metric), "compileURL(%v, %v)")
 		})
 	}
+}
+
+func TestNewRestyClient(t *testing.T) {
+	client := NewRestyClient()
+	assert.IsType(t, &resty.Client{}, client)
+}
+
+func TestNewHTTPSender_JSON(t *testing.T) {
+	cnf := config.Config{SendType: JSON}
+	snd := NewHTTPSender(nil, &cnf)
+	assert.IsType(t, &JSONSender{}, snd)
+
+}
+
+func TestNewHTTPSender_TextPlain(t *testing.T) {
+	cnf := config.Config{SendType: TEXT}
+	snd := NewHTTPSender(nil, &cnf)
+	assert.IsType(t, &TextPlainSender{}, snd)
+}
+
+func TestNewHTTPSender_Nil(t *testing.T) {
+	cnf := config.Config{SendType: ""}
+	assert.Panics(t, func() { NewHTTPSender(nil, &cnf) })
 }

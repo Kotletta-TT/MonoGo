@@ -18,6 +18,13 @@ type Metrics struct {
 	Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
 }
 
+// NewMetric initializes and returns a new Metrics object.
+//
+// Parameters:
+//   - name: the name of the metric
+//   - mType: the type of the metric
+// Returns:
+//   - *Metrics: a pointer to the newly created Metrics object
 func NewMetric(name string, mType string) *Metrics {
 	return &Metrics{
 		ID:    name,
@@ -25,6 +32,11 @@ func NewMetric(name string, mType string) *Metrics {
 	}
 }
 
+// String returns the string representation of the Metrics struct.
+//
+// It marshals the Metrics struct using the easyjson.Marshal function.
+// If an error occurs during marshaling, it returns an empty string.
+// Otherwise, it returns the marshaled struct as a string.
 func (m *Metrics) String() string {
 	buf, err := easyjson.Marshal(m)
 	if err != nil {
