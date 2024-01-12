@@ -1,3 +1,4 @@
+// Package usecase implements some utils
 package usecase
 
 import (

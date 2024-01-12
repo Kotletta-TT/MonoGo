@@ -1,3 +1,4 @@
+// Package collectors implements the Collector object.
 package collectors
 
 import (

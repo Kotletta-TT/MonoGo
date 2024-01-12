@@ -54,7 +54,7 @@ func TestNewValidationErrror(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewValidationErrror(tt.args.get, tt.args.set, tt.args.err); !reflect.DeepEqual(got, tt.want) {
+			if got := NewValidationError(tt.args.get, tt.args.set, tt.args.err); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewValidationErrror() = %v, want %v", got, tt.want)
 			}
 		})

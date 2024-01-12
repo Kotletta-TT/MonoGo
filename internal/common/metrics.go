@@ -1,3 +1,4 @@
+// Package common implements some utils
 package common
 
 import (
@@ -38,8 +39,8 @@ func NewMetric(name string, mType string) *Metrics {
 // It marshals the Metrics struct using the easyjson.Marshal function.
 // If an error occurs during marshaling, it returns an empty string.
 // Otherwise, it returns the marshaled struct as a string.
-func (m *Metrics) String() string {
-	buf, err := easyjson.Marshal(m)
+func (v *Metrics) String() string {
+	buf, err := easyjson.Marshal(v)
 	if err != nil {
 		return ""
 	}
