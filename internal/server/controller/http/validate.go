@@ -19,12 +19,14 @@ type ValidationError struct {
 // NewValidationError creates a new instance of ValidationError.
 //
 // Parameters:
-//   get - an integer representing the HTTP status code for GET requests.
-//   set - an integer representing the HTTP status code for SET requests.
-//   err - a string describing the error message.
+//
+//	get - an integer representing the HTTP status code for GET requests.
+//	set - an integer representing the HTTP status code for SET requests.
+//	err - a string describing the error message.
 //
 // Returns:
-//   a pointer to a ValidationError struct.
+//
+//	a pointer to a ValidationError struct.
 func NewValidationErrror(get, set int, err string) *ValidationError {
 	return &ValidationError{
 		Err:           err,

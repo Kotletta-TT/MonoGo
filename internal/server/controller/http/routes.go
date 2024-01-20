@@ -43,12 +43,12 @@ func ListMetrics(repo storage.Repository) func(ctx *gin.Context) {
 
 // GetMetric returns a Gin handler function that retrieves a metric from the specified repository.
 //
-// It takes a Gin context as input and validates the name and type parameters. If the validation fails, 
-// it returns a HTTP status code representing the validation error. If the validation succeeds, it 
-// calls the GetMetric method of the repository with the validated parameters. If the GetMetric 
-// operation fails, it returns a HTTP status code representing the failure. If the GetMetric 
-// operation succeeds, it converts the metric to a byte array of plain text format and writes it 
-// to the response writer of the context. Finally, it returns a HTTP status code representing a 
+// It takes a Gin context as input and validates the name and type parameters. If the validation fails,
+// it returns a HTTP status code representing the validation error. If the validation succeeds, it
+// calls the GetMetric method of the repository with the validated parameters. If the GetMetric
+// operation fails, it returns a HTTP status code representing the failure. If the GetMetric
+// operation succeeds, it converts the metric to a byte array of plain text format and writes it
+// to the response writer of the context. Finally, it returns a HTTP status code representing a
 // successful operation.
 func GetMetric(repo storage.Repository) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
