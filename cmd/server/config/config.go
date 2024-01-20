@@ -18,6 +18,9 @@ type Config struct {
 	HashKey         string `env:"KEY"`
 }
 
+// NewConfig initializes a new Config object with default values and parses command line arguments and environment variables to override the defaults.
+//
+// Returns a pointer to the newly created Config object.
 func NewConfig() *Config {
 	config := Config{}
 	flag.StringVar(&config.RunServerAddr, "a", "localhost:8080", "Address:port server")

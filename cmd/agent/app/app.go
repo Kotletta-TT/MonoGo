@@ -10,6 +10,10 @@ import (
 	"github.com/Kotletta-TT/MonoGo/internal/agent/storage"
 )
 
+// Run runs the main process of the application.
+//
+// It takes a pointer to a Config struct as a parameter.
+// It does not return anything.
 func Run(cfg *config.Config) {
 	repo := storage.New()
 	collector := collectors.NewCollector(repo)
