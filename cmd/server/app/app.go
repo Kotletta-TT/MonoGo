@@ -1,3 +1,4 @@
+// Package app implements the main process of the application.
 package app
 
 import (

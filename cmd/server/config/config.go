@@ -1,3 +1,4 @@
+// Package config implements a configuration object for the server.
 package config
 
 import (

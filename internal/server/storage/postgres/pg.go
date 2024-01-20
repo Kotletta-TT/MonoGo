@@ -1,3 +1,4 @@
+// Package postgres implements some utils
 package postgres
 
 import (
@@ -23,15 +24,6 @@ DO UPDATE SET
 	value = EXCLUDED.value,
 	delta = metrics.delta + EXCLUDED.delta
 RETURNING name, mtype, value, delta
-`
-const insertQueryMetrics = `
-	INSERT INTO metrics (name, mtype, value, delta)
-	VALUES %s
-	ON CONFLICT (name)
-	DO UPDATE SET 
-		value = EXCLUDED.value,
-		delta = metrics.delta + EXCLUDED.delta
-	RETURNING name, mtype, value, delta
 `
 
 const selectQueryMetric = `SELECT name, mtype, value, delta FROM metrics WHERE name = $1 AND mtype = $2`
