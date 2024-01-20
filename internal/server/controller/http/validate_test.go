@@ -27,7 +27,7 @@ func FabricCounterMetric(name string, delta int64) *common.Metrics {
 	}
 }
 
-func TestNewValidationErrror(t *testing.T) {
+func TestNewValidationError(t *testing.T) {
 	type args struct {
 		get int
 		set int
