@@ -22,6 +22,9 @@ type Repository interface {
 	Close()
 }
 
+// GetRepo returns a Repository based on the provided Config.
+//
+// It takes a pointer to a Config as its parameter and returns a Repository.
 func GetRepo(cfg *config.Config) Repository {
 	repo, err := postgres.New(cfg)
 	if cfg.DatabaseDSN == "" || err != nil {

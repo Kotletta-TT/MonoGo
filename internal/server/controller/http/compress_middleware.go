@@ -16,14 +16,23 @@ type gzipResponseWriter struct {
 	writer io.WriteCloser
 }
 
+// Write writes a byte slice to the gzipResponseWriter.
+//
+// It takes a byte slice as a parameter and returns the number of bytes written and an error, if any.
 func (w gzipResponseWriter) Write(data []byte) (int, error) {
 	return w.writer.Write(data)
 }
 
+// Close closes the gzipResponseWriter.
+//
+// It returns an error if there was an issue closing the writer.
 func (w gzipResponseWriter) Close() error {
 	return w.writer.Close()
 }
 
+// CompressMiddleware is a middleware function that compresses the response body if the client supports gzip compression.
+//
+// The function takes a *gin.Context parameter and returns nothing.
 func CompressMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if ctx.GetHeader("Accept-Encoding") == GZIP {

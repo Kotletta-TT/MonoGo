@@ -5,6 +5,9 @@ import (
 	"compress/gzip"
 )
 
+// GzipCompress compresses the given data using gzip algorithm.
+//
+// It takes a byte slice as input parameter and returns the compressed byte slice and an error if any.
 func GzipCompress(data []byte) ([]byte, error) {
 	buf := bytes.Buffer{}
 	gzipWriter, err := gzip.NewWriterLevel(&buf, gzip.BestCompression)

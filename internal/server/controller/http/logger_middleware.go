@@ -8,6 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// RequestResponseLogging returns a gin.HandlerFunc that logs the request and response details.
+//
+// It takes in a gin.Context as a parameter.
+// There is no return value.
 func RequestResponseLogging() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		startTime := time.Now()

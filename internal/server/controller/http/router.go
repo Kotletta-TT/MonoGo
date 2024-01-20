@@ -6,6 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// NewRouter creates a new gin.Engine instance and configures it with the provided repository and config.
+//
+// repo: The storage.Repository instance used for data storage.
+// cfg: The config.Config instance used for configuration settings.
+// Return: A pointer to the gin.Engine instance.
 func NewRouter(repo storage.Repository, cfg *config.Config) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()

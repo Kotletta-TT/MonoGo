@@ -12,6 +12,9 @@ import (
 	"github.com/shirou/gopsutil/mem"
 )
 
+// RuntimeMetricsCollector collects and stores runtime metrics.
+//
+// repo: the collectorStorage to store the metrics.
 func RuntimeMetricsCollector(repo collectorStorage) {
 	log.Println("start runtime metrics collector")
 	metricMap := make(map[string]*entity.Value)
@@ -47,6 +50,14 @@ func RuntimeMetricsCollector(repo collectorStorage) {
 	repo.StoreMetrics(metricMap)
 }
 
+// CustomMetricsCollector is a function that collects custom metrics.
+//
+// It takes a repo of type collectorStorage as a parameter and stores the metrics in it.
+// The function does the following:
+// - Prints a log message indicating the start of the collection process.
+// - Creates a pollCount value of type entity.Value with a metric of 1 and kind of entity.KindCounter.
+// - Creates a randValue value of type entity.Value with a random float64 metric and kind of entity.KindGauge.
+// - Calls the StoreMetrics method of the repo parameter with a map of metric names and their corresponding values.
 func CustomMetricsCollector(repo collectorStorage) {
 	log.Println("start custom metrics collector")
 	pollCount := &entity.Value{Metric: uint64(int64(1)), Kind: entity.KindCounter}
@@ -54,6 +65,9 @@ func CustomMetricsCollector(repo collectorStorage) {
 	repo.StoreMetrics(map[string]*entity.Value{"PollCount": pollCount, "RandomValue": randValue})
 }
 
+// SystemStatsCollector collects system statistics and stores them in the given repository.
+//
+// repo: the collector storage repository where the metrics will be stored.
 func SystemStatsCollector(repo collectorStorage) {
 	metricMap := make(map[string]*entity.Value)
 	log.Println("start system stats collector")
