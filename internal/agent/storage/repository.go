@@ -1,3 +1,4 @@
+// Package storage provides repository for agent
 package storage
 
 import (

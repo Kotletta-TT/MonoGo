@@ -1,3 +1,4 @@
+// Package app implements the main process of the application.
 package app
 
 import (
@@ -14,7 +15,5 @@ import (
 func Run(cfg *config.Config) {
 	repo := storage.GetRepo(cfg)
 	defer repo.Close()
-	ginRouter := http.NewRouter(repo, cfg)
-	logger.Infof("Start server: http://%s/", cfg.RunServerAddr)
-	logger.Fatal(ginRouter.Run(cfg.RunServerAddr))
+	logger.Error(http.RunServer(repo, cfg))
 }
