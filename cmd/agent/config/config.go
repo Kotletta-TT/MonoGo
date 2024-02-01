@@ -17,6 +17,10 @@ type Config struct {
 	BatchSupport   bool   `env:"BATCH_SUPPORT"`
 	HashKey        string `env:"KEY"`
 	RateLimit      int    `env:"RATE_LIMIT"`
+	SSL            bool   `env:"CRYPTO_KEY"`
+	CertPath       string `env:"CERT_PATH"`
+	KeyPath        string `env:"KEY_PATH"`
+	CaPath         string `env:"CA_PATH"`
 }
 
 // NewConfig creates a new Config object and initializes its fields
@@ -29,11 +33,15 @@ func NewConfig() *Config {
 	flag.StringVar(&config.ServerHost, "a", "localhost:8080", "Address:port server")
 	flag.IntVar(&config.ReportInterval, "r", 10, "Frequency to send server in sec")
 	flag.IntVar(&config.PollInterval, "p", 2, "Frequency collect metrics in sec")
-	flag.StringVar(&config.SendType, "s", "json", "Send type")
+	flag.StringVar(&config.SendType, "t", "json", "Send type")
 	flag.StringVar(&config.Compress, "compress", "gzip", "Compress send JSON-data")
 	flag.BoolVar(&config.BatchSupport, "batch", false, "Use batch mode")
 	flag.StringVar(&config.HashKey, "k", "", "Hash key for signing data")
 	flag.IntVar(&config.RateLimit, "l", runtime.NumCPU(), "Rate limit")
+	flag.BoolVar(&config.SSL, "s", false, "Use SSL")
+	flag.StringVar(&config.CertPath, "cert", "agent.crt", "Certificate path")
+	flag.StringVar(&config.KeyPath, "key", "agent.key", "Key path")
+	flag.StringVar(&config.CaPath, "ca", "root.pem", "CA path IMPORTANT! use pem format")
 	flag.Parse()
 	err := env.Parse(&config)
 	if err != nil {

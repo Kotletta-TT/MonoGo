@@ -2,7 +2,9 @@
 package sender
 
 import (
+	"crypto/tls"
 	"fmt"
+	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
 	"io"
 	"log"
 	"math"
@@ -51,11 +53,19 @@ type JSONSender HTTPSender
 //
 // It does not take any parameters.
 // It returns a pointer to a resty.Client object.
-func NewRestyClient() *resty.Client {
+func NewRestyClient(cfg *config.Config) *resty.Client {
 	client := resty.New()
 	client.SetRetryCount(3)
 	client.SetRetryWaitTime(1 * time.Second)
 	client.SetRetryMaxWaitTime(5 * time.Second)
+	if cfg.SSL {
+		cert, err := tls.LoadX509KeyPair(cfg.CertPath, cfg.KeyPath)
+		if err != nil {
+			logger.Errorf("Failed to load client certificate: %s", err)
+		}
+		client.SetCertificates(cert)
+		client.SetRootCertificate(cfg.CaPath)
+	}
 	return client
 }
 
@@ -69,9 +79,9 @@ func NewRestyClient() *resty.Client {
 func NewHTTPSender(repo metricsStore, cfg *config.Config) Sender {
 	switch cfg.SendType {
 	case JSON:
-		return &JSONSender{repo: repo, client: NewRestyClient(), cfg: cfg}
+		return &JSONSender{repo: repo, client: NewRestyClient(cfg), cfg: cfg}
 	case TEXT:
-		return &TextPlainSender{repo: repo, client: NewRestyClient(), cfg: cfg}
+		return &TextPlainSender{repo: repo, client: NewRestyClient(cfg), cfg: cfg}
 	default:
 		panic("Send type unknown")
 	}
