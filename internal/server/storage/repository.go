@@ -1,3 +1,4 @@
+// Package storage provides repository for server
 package storage
 
 import (
@@ -11,7 +12,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// Данный интерфейс отображает на мой взгляд самый быстрый способ получения и заполнения данных,
+// Repository Данный интерфейс отображает на мой взгляд самый быстрый способ получения и заполнения данных,
 // Сокращает объем кода, и использует мало памяти, засчет эффективного переиспользования структур и типов данных.
 type Repository interface {
 	StoreMetric(metric *common.Metrics) error
