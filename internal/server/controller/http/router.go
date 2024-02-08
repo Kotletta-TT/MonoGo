@@ -15,7 +15,7 @@ import (
 //
 // repo: The storage.Repository instance used for data storage.
 // cfg: The config.Config instance used for configuration settings.
-func RunServer(repo storage.Repository, cfg *config.Config) error {
+func NewServer(repo storage.Repository, cfg *config.Config) (*http.Server, error) {
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.RedirectTrailingSlash = false
@@ -33,18 +33,19 @@ func RunServer(repo storage.Repository, cfg *config.Config) error {
 	if cfg.SSL {
 		cert, err := tls.LoadX509KeyPair(cfg.CertPath, cfg.KeyPath)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		caCert, err := os.ReadFile(cfg.CaPath)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM(caCert)
 		tlsCfg := &tls.Config{Certificates: []tls.Certificate{cert}, RootCAs: caCertPool, ClientCAs: caCertPool, ClientAuth: tls.RequireAndVerifyClientCert}
 		srv := http.Server{Handler: engine, TLSConfig: tlsCfg, Addr: cfg.RunServerAddr}
-		return srv.ListenAndServeTLS("", "")
+		return &srv, nil
 	} else {
-		return engine.Run(cfg.RunServerAddr)
+		srv := http.Server{Handler: engine, Addr: cfg.RunServerAddr}
+		return &srv, nil
 	}
 }

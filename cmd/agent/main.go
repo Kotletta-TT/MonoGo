@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/Kotletta-TT/MonoGo/cmd/agent/app"
 	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
 	"log"
+	"os/signal"
+	"syscall"
 )
 
 var buildVersion string
@@ -15,7 +18,9 @@ func main() {
 	printBuildInfo()
 	log.Println("Start Agent MonoGo")
 	cnf := config.NewConfig()
-	app.Run(cnf)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
+	app.Run(ctx, cnf)
 }
 
 func printBuildInfo() {

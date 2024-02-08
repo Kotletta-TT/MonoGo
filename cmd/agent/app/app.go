@@ -2,6 +2,7 @@
 package app
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 //
 // It takes a pointer to a Config struct as a parameter.
 // It does not return anything.
-func Run(cfg *config.Config) {
+func Run(ctx context.Context, cfg *config.Config) {
 	repo := storage.New()
 	collector := collectors.NewCollector(repo)
 	collector.RegisterCollectorMetricFunc(collectors.RuntimeMetricsCollector)
@@ -30,7 +31,9 @@ func Run(cfg *config.Config) {
 		case <-pollTic.C:
 			go collector.Collect()
 		case <-reportTic.C:
-			go httpSender.Send()
+			go httpSender.Send(ctx)
+		case <-ctx.Done():
+			return
 		}
 	}
 }

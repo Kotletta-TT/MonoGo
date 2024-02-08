@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os/signal"
+	"syscall"
 
 	"github.com/Kotletta-TT/MonoGo/cmd/server/app"
 	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
@@ -18,7 +21,9 @@ func main() {
 	printBuildInfo()
 	cfg := config.NewConfig()
 	log.Init(cfg)
-	go app.Run(cfg)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
+	go app.Run(ctx, cfg)
 	http.ListenAndServe("localhost:8080", nil)
 }
 

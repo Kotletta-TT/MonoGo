@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
@@ -11,6 +12,6 @@ import (
 
 func TestGetRepo(t *testing.T) {
 	log.Init(&config.Config{LogLevel: "debug"})
-	repo := GetRepo(&config.Config{DatabaseDSN: ""})
+	repo := GetRepo(context.Background(), &config.Config{DatabaseDSN: ""})
 	assert.IsType(t, &memory.MemRepository{}, repo)
 }

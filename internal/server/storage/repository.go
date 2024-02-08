@@ -26,8 +26,8 @@ type Repository interface {
 // GetRepo returns a Repository based on the provided Config.
 //
 // It takes a pointer to a Config as its parameter and returns a Repository.
-func GetRepo(cfg *config.Config) Repository {
-	repo, err := postgres.New(cfg)
+func GetRepo(ctx context.Context, cfg *config.Config) Repository {
+	repo, err := postgres.New(ctx, cfg)
 	if cfg.DatabaseDSN == "" || err != nil {
 		logger.Infof("Connect to database error: %s", err)
 		logger.Info("Repo: MemoryStorage")
