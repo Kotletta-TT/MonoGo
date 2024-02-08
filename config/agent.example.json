@@ -1,0 +1,11 @@
+{
+  "address": "localhost:8080",
+  "report_interval": "1s",
+  "poll_interval": "1s",
+  "send_type": "json",
+  "compress": "gzip",
+  "batch_support": true,
+  "hash_key": "secret_key_put_here",
+  "rate_limit": 12,
+  "ssl": false
+}

@@ -1,3 +1,4 @@
+// Package storage provides repository for server
 package storage
 
 import (
@@ -11,7 +12,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-// Данный интерфейс отображает на мой взгляд самый быстрый способ получения и заполнения данных,
+// Repository Данный интерфейс отображает на мой взгляд самый быстрый способ получения и заполнения данных,
 // Сокращает объем кода, и использует мало памяти, засчет эффективного переиспользования структур и типов данных.
 type Repository interface {
 	StoreMetric(metric *common.Metrics) error
@@ -25,8 +26,8 @@ type Repository interface {
 // GetRepo returns a Repository based on the provided Config.
 //
 // It takes a pointer to a Config as its parameter and returns a Repository.
-func GetRepo(cfg *config.Config) Repository {
-	repo, err := postgres.New(cfg)
+func GetRepo(ctx context.Context, cfg *config.Config) Repository {
+	repo, err := postgres.New(ctx, cfg)
 	if cfg.DatabaseDSN == "" || err != nil {
 		logger.Infof("Connect to database error: %s", err)
 		logger.Info("Repo: MemoryStorage")
