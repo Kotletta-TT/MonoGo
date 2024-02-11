@@ -23,6 +23,7 @@ type Config struct {
 	CertPath        string `env:"CERT_PATH" json:"cert_path"`
 	KeyPath         string `env:"KEY_PATH" json:"key_path"`
 	CaPath          string `env:"CA_PATH" json:"ca_path"`
+	TrustedSubnet   string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 // NewConfig initializes a new Config object with default values and parses command line arguments and environment variables to override the defaults.
@@ -45,6 +46,7 @@ func NewConfig() *Config {
 	flag.StringVar(&config.KeyPath, "key", "server.key", "Path to key")
 	flag.StringVar(&config.CaPath, "ca", "root.pem", "Path to certificate authority")
 	flag.StringVar(&configPath, "c", "", "Config path")
+	flag.StringVar(&config.TrustedSubnet, "t", "", "Trusted subnet")
 	flag.Parse()
 	if configPath != "" {
 		config = GetJSONConfig(configPath)

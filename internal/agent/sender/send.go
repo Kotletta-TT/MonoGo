@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/Kotletta-TT/MonoGo/internal/agent/utils"
 	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
 	"io"
 	"log"
@@ -59,6 +60,7 @@ func NewRestyClient(cfg *config.Config) *resty.Client {
 	client.SetRetryCount(3)
 	client.SetRetryWaitTime(1 * time.Second)
 	client.SetRetryMaxWaitTime(5 * time.Second)
+	client.SetHeader("X-Real-IP", utils.GetLocalIP())
 	if cfg.SSL {
 		cert, err := tls.LoadX509KeyPair(cfg.CertPath, cfg.KeyPath)
 		if err != nil {
