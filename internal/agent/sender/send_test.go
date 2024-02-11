@@ -56,7 +56,8 @@ func TestHTTPSender_compileURL(t *testing.T) {
 }
 
 func TestNewRestyClient(t *testing.T) {
-	client := NewRestyClient()
+	cfg := config.NewConfig()
+	client := NewRestyClient(cfg)
 	assert.IsType(t, &resty.Client{}, client)
 }
 
