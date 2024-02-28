@@ -1,5 +1,6 @@
 {
   "address": "localhost:8080",
+  "transport": "http",
   "report_interval": "1s",
   "poll_interval": "1s",
   "send_type": "json",

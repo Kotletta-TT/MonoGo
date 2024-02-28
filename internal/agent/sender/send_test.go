@@ -63,18 +63,20 @@ func TestNewRestyClient(t *testing.T) {
 
 func TestNewHTTPSender_JSON(t *testing.T) {
 	cnf := config.Config{SendType: JSON}
-	snd := NewHTTPSender(nil, &cnf)
+	snd, err := NewSender(nil, &cnf)
+	assert.NoError(t, err)
 	assert.IsType(t, &JSONSender{}, snd)
 
 }
 
 func TestNewHTTPSender_TextPlain(t *testing.T) {
 	cnf := config.Config{SendType: TEXT}
-	snd := NewHTTPSender(nil, &cnf)
+	snd, err := NewSender(nil, &cnf)
+	assert.NoError(t, err)
 	assert.IsType(t, &TextPlainSender{}, snd)
 }
 
 func TestNewHTTPSender_Nil(t *testing.T) {
 	cnf := config.Config{SendType: ""}
-	assert.Panics(t, func() { NewHTTPSender(nil, &cnf) })
+	assert.Panics(t, func() { NewSender(nil, &cnf) })
 }

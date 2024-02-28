@@ -3,10 +3,11 @@ package app
 
 import (
 	"context"
+
 	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
-	"github.com/Kotletta-TT/MonoGo/internal/server/controller/http"
 	log "github.com/Kotletta-TT/MonoGo/internal/server/logger"
 	"github.com/Kotletta-TT/MonoGo/internal/server/storage"
+	"github.com/Kotletta-TT/MonoGo/internal/server/transport"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -17,17 +18,14 @@ import (
 func Run(ctx context.Context, cfg *config.Config) {
 	repo := storage.GetRepo(ctx, cfg)
 	defer repo.Close()
-	srv, err := http.NewServer(repo, cfg)
+	srv, err := transport.NewTransport(cfg, repo)
 	if err != nil {
 		log.Error(err)
 		return
 	}
 	g, gCtx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		if cfg.SSL {
-			return srv.ListenAndServeTLS("", "")
-		}
-		return srv.ListenAndServe()
+		return srv.Start(gCtx)
 	})
 	g.Go(func() error {
 		<-gCtx.Done()

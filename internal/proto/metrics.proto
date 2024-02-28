@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package metrics;
+
+option go_package = "github.com/Kotletta-TT/MonoGo";
+
+enum MType {
+    GAUGE = 0;
+    COUNTER = 1;
+}
+
+message Metric {
+    string name = 1;
+    MType mtype = 2;
+    optional double value = 3;
+    optional int64 delta = 4;
+}
+
+message Empty {}
+
+message GetMetricRequest {
+    string id = 1;
+    MType mtype = 2;
+}
+
+message SetBulkMetricsRequest {
+    repeated Metric metrics = 1;
+}
+
+message SetBulkMetricsResponse {
+    Empty empty = 1;
+}
+
+message GetListMetricsResponse {
+    repeated Metric metrics = 1;
+}
+
+service MetricsService {
+    rpc GetMetric(GetMetricRequest) returns (Metric);
+    rpc SetMetric(Metric) returns (Metric);
+    rpc SetBulkMetrics(SetBulkMetricsRequest) returns (Empty);
+    rpc GetListMetrics(Empty) returns (GetListMetricsResponse);
+}
+

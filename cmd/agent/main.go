@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Kotletta-TT/MonoGo/cmd/agent/app"
-	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
 	"log"
 	"os/signal"
 	"syscall"
+
+	"github.com/Kotletta-TT/MonoGo/cmd/agent/app"
+	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
 )
 
 var buildVersion string
@@ -20,7 +21,10 @@ func main() {
 	cnf := config.NewConfig()
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer stop()
-	app.Run(ctx, cnf)
+	err := app.Run(ctx, cnf)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func printBuildInfo() {

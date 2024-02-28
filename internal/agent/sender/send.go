@@ -5,8 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/Kotletta-TT/MonoGo/internal/agent/utils"
-	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
 	"io"
 	"log"
 	"math"
@@ -15,9 +13,15 @@ import (
 
 	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
 	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
+	"github.com/Kotletta-TT/MonoGo/internal/agent/utils"
 	"github.com/Kotletta-TT/MonoGo/internal/common"
+	pb "github.com/Kotletta-TT/MonoGo/internal/proto"
+	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
 	"github.com/go-resty/resty/v2"
 	"github.com/mailru/easyjson"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -25,6 +29,7 @@ const (
 	COUNTER = "counter"
 	JSON    = "json"
 	TEXT    = "text"
+	GRPC    = "grpc"
 )
 
 type metricsStore interface {
@@ -79,14 +84,69 @@ func NewRestyClient(cfg *config.Config) *resty.Client {
 // If the SendType is JSON, it returns a JSONSender object.
 // If the SendType is TEXT, it returns a TextPlainSender object.
 // If the SendType is neither JSON nor TEXT, it panics with the message "Send type unknown".
-func NewHTTPSender(repo metricsStore, cfg *config.Config) Sender {
+
+func NewSender(repo metricsStore, cfg *config.Config) (Sender, error) {
 	switch cfg.SendType {
 	case JSON:
-		return &JSONSender{repo: repo, client: NewRestyClient(cfg), cfg: cfg}
+		return &JSONSender{repo: repo, client: NewRestyClient(cfg), cfg: cfg}, nil
 	case TEXT:
-		return &TextPlainSender{repo: repo, client: NewRestyClient(cfg), cfg: cfg}
+		return &TextPlainSender{repo: repo, client: NewRestyClient(cfg), cfg: cfg}, nil
+	case GRPC:
+		return NewGRPCSender(cfg, repo)
 	default:
 		panic("Send type unknown")
+	}
+}
+
+type GRPCSender struct {
+	cfg    *config.Config
+	conn   *grpc.ClientConn
+	repo   metricsStore
+	client pb.MetricsServiceClient
+}
+
+func NewGRPCSender(cfg *config.Config, repo metricsStore) (*GRPCSender, error) {
+	transportCred := insecure.NewCredentials()
+	if cfg.SSL {
+		cert, err := tls.LoadX509KeyPair(cfg.CertPath, cfg.KeyPath)
+		if err != nil {
+			return nil, err
+		}
+		transportCred = credentials.NewTLS(&tls.Config{Certificates: []tls.Certificate{cert}})
+	}
+	conn, err := grpc.Dial(cfg.ServerHost, grpc.WithTransportCredentials(transportCred))
+	if err != nil {
+		return nil, err
+	}
+	client := pb.NewMetricsServiceClient(conn)
+	g := &GRPCSender{
+		cfg:    cfg,
+		repo:   repo,
+		conn:   conn,
+		client: client,
+	}
+	return g, nil
+}
+
+func (g *GRPCSender) SendBatch() {
+	metrics := g.repo.GetMetricsSlice()
+	pMetrics := common.NewProtoMetricsFromSlice(metrics)
+	g.client.SetBulkMetrics(context.Background(), pMetrics)
+}
+
+func (g *GRPCSender) SendMetric() {
+	metrics := g.repo.GetMetricsSlice()
+	for _, metric := range metrics {
+		go g.client.SetMetric(context.Background(), metric.ToProto())
+	}
+}
+
+func (g *GRPCSender) Send(ctx context.Context) {
+	switch g.cfg.BatchSupport {
+	case true:
+		g.SendBatch()
+	default:
+		g.SendMetric()
 	}
 }
 
