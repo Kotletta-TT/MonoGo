@@ -1,3 +1,4 @@
+// Package memory implements some utils
 package memory
 
 import (
@@ -157,7 +158,7 @@ func (m *MemRepository) loadFromFile() (map[string]*common.Metrics, error) {
 			continue
 		}
 		metric := new(common.Metrics)
-		if err := easyjson.Unmarshal(line, metric); err != nil {
+		if err = easyjson.Unmarshal(line, metric); err != nil {
 			return nil, err
 		}
 		metrics[metric.ID] = metric

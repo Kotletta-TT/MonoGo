@@ -1,20 +1,35 @@
+// Package app implements the main process of the application.
 package app
 
 import (
+	"context"
+
 	"github.com/Kotletta-TT/MonoGo/cmd/server/config"
-	"github.com/Kotletta-TT/MonoGo/internal/server/controller/http"
-	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
+	log "github.com/Kotletta-TT/MonoGo/internal/server/logger"
 	"github.com/Kotletta-TT/MonoGo/internal/server/storage"
+	"github.com/Kotletta-TT/MonoGo/internal/server/transport"
+	"golang.org/x/sync/errgroup"
 )
 
 // Run executes the Go function.
 //
 // It takes a pointer to a `config.Config` struct as a parameter.
 // It does not return anything.
-func Run(cfg *config.Config) {
-	repo := storage.GetRepo(cfg)
+func Run(ctx context.Context, cfg *config.Config) {
+	repo := storage.GetRepo(ctx, cfg)
 	defer repo.Close()
-	ginRouter := http.NewRouter(repo, cfg)
-	logger.Infof("Start server: http://%s/", cfg.RunServerAddr)
-	logger.Fatal(ginRouter.Run(cfg.RunServerAddr))
+	srv, err := transport.NewTransport(cfg, repo)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	g, gCtx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		return srv.Start(gCtx)
+	})
+	g.Go(func() error {
+		<-gCtx.Done()
+		return srv.Shutdown(context.Background())
+	})
+	log.Info(g.Wait())
 }

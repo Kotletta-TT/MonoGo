@@ -1,6 +1,9 @@
+// Package sender implements the Sender interface.
 package sender
 
 import (
+	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -10,9 +13,15 @@ import (
 
 	"github.com/Kotletta-TT/MonoGo/cmd/agent/config"
 	"github.com/Kotletta-TT/MonoGo/internal/agent/entity"
+	"github.com/Kotletta-TT/MonoGo/internal/agent/utils"
 	"github.com/Kotletta-TT/MonoGo/internal/common"
+	pb "github.com/Kotletta-TT/MonoGo/internal/proto"
+	"github.com/Kotletta-TT/MonoGo/internal/server/logger"
 	"github.com/go-resty/resty/v2"
 	"github.com/mailru/easyjson"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -20,6 +29,7 @@ const (
 	COUNTER = "counter"
 	JSON    = "json"
 	TEXT    = "text"
+	GRPC    = "grpc"
 )
 
 type metricsStore interface {
@@ -28,7 +38,7 @@ type metricsStore interface {
 }
 
 type Sender interface {
-	Send()
+	Send(ctx context.Context)
 }
 
 type ResultWork struct {
@@ -50,11 +60,20 @@ type JSONSender HTTPSender
 //
 // It does not take any parameters.
 // It returns a pointer to a resty.Client object.
-func NewRestyClient() *resty.Client {
+func NewRestyClient(cfg *config.Config) *resty.Client {
 	client := resty.New()
 	client.SetRetryCount(3)
 	client.SetRetryWaitTime(1 * time.Second)
 	client.SetRetryMaxWaitTime(5 * time.Second)
+	client.SetHeader("X-Real-IP", utils.GetLocalIP())
+	if cfg.SSL {
+		cert, err := tls.LoadX509KeyPair(cfg.CertPath, cfg.KeyPath)
+		if err != nil {
+			logger.Errorf("Failed to load client certificate: %s", err)
+		}
+		client.SetCertificates(cert)
+		client.SetRootCertificate(cfg.CaPath)
+	}
 	return client
 }
 
@@ -65,14 +84,69 @@ func NewRestyClient() *resty.Client {
 // If the SendType is JSON, it returns a JSONSender object.
 // If the SendType is TEXT, it returns a TextPlainSender object.
 // If the SendType is neither JSON nor TEXT, it panics with the message "Send type unknown".
-func NewHTTPSender(repo metricsStore, cfg *config.Config) Sender {
+
+func NewSender(repo metricsStore, cfg *config.Config) (Sender, error) {
 	switch cfg.SendType {
 	case JSON:
-		return &JSONSender{repo: repo, client: NewRestyClient(), cfg: cfg}
+		return &JSONSender{repo: repo, client: NewRestyClient(cfg), cfg: cfg}, nil
 	case TEXT:
-		return &TextPlainSender{repo: repo, client: NewRestyClient(), cfg: cfg}
+		return &TextPlainSender{repo: repo, client: NewRestyClient(cfg), cfg: cfg}, nil
+	case GRPC:
+		return NewGRPCSender(cfg, repo)
 	default:
 		panic("Send type unknown")
+	}
+}
+
+type GRPCSender struct {
+	cfg    *config.Config
+	conn   *grpc.ClientConn
+	repo   metricsStore
+	client pb.MetricsServiceClient
+}
+
+func NewGRPCSender(cfg *config.Config, repo metricsStore) (*GRPCSender, error) {
+	transportCred := insecure.NewCredentials()
+	if cfg.SSL {
+		cert, err := tls.LoadX509KeyPair(cfg.CertPath, cfg.KeyPath)
+		if err != nil {
+			return nil, err
+		}
+		transportCred = credentials.NewTLS(&tls.Config{Certificates: []tls.Certificate{cert}})
+	}
+	conn, err := grpc.Dial(cfg.ServerHost, grpc.WithTransportCredentials(transportCred))
+	if err != nil {
+		return nil, err
+	}
+	client := pb.NewMetricsServiceClient(conn)
+	g := &GRPCSender{
+		cfg:    cfg,
+		repo:   repo,
+		conn:   conn,
+		client: client,
+	}
+	return g, nil
+}
+
+func (g *GRPCSender) SendBatch() {
+	metrics := g.repo.GetMetricsSlice()
+	pMetrics := common.NewProtoMetricsFromSlice(metrics)
+	g.client.SetBulkMetrics(context.Background(), pMetrics)
+}
+
+func (g *GRPCSender) SendMetric() {
+	metrics := g.repo.GetMetricsSlice()
+	for _, metric := range metrics {
+		go g.client.SetMetric(context.Background(), metric.ToProto())
+	}
+}
+
+func (g *GRPCSender) Send(ctx context.Context) {
+	switch g.cfg.BatchSupport {
+	case true:
+		g.SendBatch()
+	default:
+		g.SendMetric()
 	}
 }
 
@@ -104,11 +178,11 @@ func (h *TextPlainSender) compileURL(metric *common.Metrics) string {
 // - Next, it sends an HTTP POST request to the send URL using the R method of the client struct.
 // - The response and error from the request are stored in the resp and err variables respectively.
 // - Finally, it sends a pointer to a ResultWork struct to the results channel, containing the status code, body, and error.
-func (h *TextPlainSender) sendWorker(jobs <-chan *common.Metrics, results chan<- *ResultWork) {
+func (h *TextPlainSender) sendWorker(ctx context.Context, jobs <-chan *common.Metrics, results chan<- *ResultWork) {
 	for metric := range jobs {
 		sendURL := h.compileURL(metric)
 		log.Printf("Send URL: %s", sendURL)
-		resp, err := h.client.R().Post(sendURL)
+		resp, err := h.client.R().SetContext(ctx).Post(sendURL)
 		results <- &ResultWork{StatusCode: resp.StatusCode(), Body: resp.Body(), Err: err}
 	}
 }
@@ -117,13 +191,13 @@ func (h *TextPlainSender) sendWorker(jobs <-chan *common.Metrics, results chan<-
 //
 // No parameters.
 // No return value.
-func (h *TextPlainSender) Send() {
+func (h *TextPlainSender) Send(ctx context.Context) {
 	log.Println("Start Text/Plain send metrics")
 	metrics := h.repo.GetMetricsSlice()
 	jobs := make(chan *common.Metrics, len(metrics))
 	results := make(chan *ResultWork, len(metrics))
 	for i := 0; i < h.cfg.RateLimit; i++ {
-		go h.sendWorker(jobs, results)
+		go h.sendWorker(ctx, jobs, results)
 	}
 	for _, metric := range metrics {
 		jobs <- metric
@@ -247,9 +321,9 @@ func (j *JSONSender) receiveResponse(resp *resty.Response, err error) {
 // and sends the metric using an HTTP POST request.
 // The response status code, body, and any errors encountered are sent back
 // through the results channel.
-func (j *JSONSender) sendWorker(jobs <-chan *common.Metrics, results chan<- *ResultWork, url string) {
+func (j *JSONSender) sendWorker(ctx context.Context, jobs <-chan *common.Metrics, results chan<- *ResultWork, url string) {
 	for metric := range jobs {
-		req := j.client.R()
+		req := j.client.R().SetContext(ctx)
 		req.SetHeader("Content-Type", "application/json")
 		if j.cfg.Compress == "gzip" {
 			req.SetHeader("Content-Encoding", "gzip")
@@ -279,7 +353,7 @@ func (j *JSONSender) sendWorker(jobs <-chan *common.Metrics, results chan<- *Res
 // updates. It then sends the metrics concurrently to the server using worker
 // goroutines and waits for the results. If an error occurs during sending or
 // if the response status code is not 200, it logs the error.
-func (j *JSONSender) Send() {
+func (j *JSONSender) Send(ctx context.Context) {
 	var sendURL url.URL
 	log.Println("Start JSON send metrics")
 	req := j.client.R()
@@ -308,7 +382,7 @@ func (j *JSONSender) Send() {
 		jobs := make(chan *common.Metrics, len(metrics))
 		results := make(chan *ResultWork, len(metrics))
 		for i := 0; i < j.cfg.RateLimit; i++ {
-			go j.sendWorker(jobs, results, sendURL.String())
+			go j.sendWorker(ctx, jobs, results, sendURL.String())
 		}
 		for _, metric := range metrics {
 			jobs <- metric
