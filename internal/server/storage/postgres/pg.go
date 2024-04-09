@@ -47,8 +47,7 @@ type Database struct {
 	ctx    context.Context
 }
 
-func New(cfg *config.Config) (*Database, error) {
-	ctx := context.Background()
+func New(ctx context.Context, cfg *config.Config) (*Database, error) {
 	pgConn, err := pgxpool.New(ctx, cfg.DatabaseDSN)
 	if err != nil {
 		return nil, err
