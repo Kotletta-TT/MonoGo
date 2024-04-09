@@ -17,6 +17,10 @@ type Config struct {
 	Restore         bool   `env:"RESTORE"`
 	DatabaseDSN     string `env:"DATABASE_DSN"`
 	HashKey         string `env:"KEY"`
+	SSL             bool   `env:"SSL"`
+	CertPath        string `env:"CERT_PATH"`
+	KeyPath         string `env:"KEY_PATH"`
+	CaPath          string `env:"CA_PATH"`
 }
 
 // NewConfig initializes a new Config object with default values and parses command line arguments and environment variables to override the defaults.
@@ -33,6 +37,10 @@ func NewConfig() *Config {
 	flag.BoolVar(&config.Restore, "r", true, "Restore from file")
 	flag.StringVar(&config.DatabaseDSN, "d", "", "DB URL example: postgres://username:password@localhost:5432/database_name")
 	flag.StringVar(&config.HashKey, "k", "", "Hash key for signing data")
+	flag.BoolVar(&config.SSL, "s", false, "Use SSL")
+	flag.StringVar(&config.CertPath, "cert", "server.crt", "Path to certificate")
+	flag.StringVar(&config.KeyPath, "key", "server.key", "Path to key")
+	flag.StringVar(&config.CaPath, "ca", "root.pem", "Path to certificate authority")
 	flag.Parse()
 	err := env.Parse(&config)
 	if err != nil {

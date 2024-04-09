@@ -124,4 +124,7 @@ coverage:
 profile:
 	curl http://localhost:8080/debug/pprof/heap\?seconds\=30 -o profiles/rename_me.pprof
 
+generate_certificate:
+	./make_cert.sh
+
 .PHONY: build server agent
