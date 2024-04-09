@@ -1,3 +1,4 @@
+// Package common implements some utils
 package common
 
 // SumDelta calculates the sum of the given delta values.

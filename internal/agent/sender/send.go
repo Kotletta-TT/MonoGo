@@ -1,3 +1,4 @@
+// Package sender implements the Sender interface.
 package sender
 
 import (

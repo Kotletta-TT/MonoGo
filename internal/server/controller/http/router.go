@@ -1,3 +1,4 @@
+// Package http implements some utils
 package http
 
 import (

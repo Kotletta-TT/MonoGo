@@ -1,3 +1,4 @@
+// Package entity implements the Value object.
 package entity
 
 import (

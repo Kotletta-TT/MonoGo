@@ -1,3 +1,4 @@
+// Package http implements some utils
 package http
 
 import (
@@ -27,7 +28,7 @@ type ValidationError struct {
 // Returns:
 //
 //	a pointer to a ValidationError struct.
-func NewValidationErrror(get, set int, err string) *ValidationError {
+func NewValidationError(get, set int, err string) *ValidationError {
 	return &ValidationError{
 		Err:           err,
 		GetHTTPStatus: get,
@@ -51,10 +52,10 @@ func ValidateNameTypeParams(ctx *gin.Context) (*common.Metrics, error) {
 	name := ctx.Param("metric")
 	mType := ctx.Param("metricType")
 	if name == "" {
-		return nil, fmt.Errorf("%w", NewValidationErrror(http.StatusNotFound, http.StatusBadRequest, "metric name is empty"))
+		return nil, fmt.Errorf("%w", NewValidationError(http.StatusNotFound, http.StatusBadRequest, "metric name is empty"))
 	}
 	if mType != GAUGE && mType != COUNTER {
-		return nil, fmt.Errorf("%w", NewValidationErrror(http.StatusNotFound, http.StatusBadRequest, "metric type is not gauge or counter"))
+		return nil, fmt.Errorf("%w", NewValidationError(http.StatusNotFound, http.StatusBadRequest, "metric type is not gauge or counter"))
 	}
 	return common.NewMetric(name, mType), nil
 }
@@ -73,13 +74,13 @@ func ValidateValue(ctx *gin.Context, metric *common.Metrics) error {
 	case GAUGE:
 		value, err := usecase.ParseGaugeMetric(valueString)
 		if err != nil {
-			return fmt.Errorf("%s %w", err, NewValidationErrror(http.StatusNotFound, http.StatusBadRequest, "invalid value for gauge"))
+			return fmt.Errorf("%s %w", err, NewValidationError(http.StatusNotFound, http.StatusBadRequest, "invalid value for gauge"))
 		}
 		metric.Value = &value
 	case COUNTER:
 		value, err := usecase.ParseCounterMetric(valueString)
 		if err != nil {
-			return fmt.Errorf("%s %w", err, NewValidationErrror(http.StatusNotFound, http.StatusBadRequest, "invalid value for counter"))
+			return fmt.Errorf("%s %w", err, NewValidationError(http.StatusNotFound, http.StatusBadRequest, "invalid value for counter"))
 		}
 		metric.Delta = &value
 	}
@@ -115,13 +116,13 @@ func ValidateJSON(ctx *gin.Context) (*common.Metrics, error) {
 	m := new(common.Metrics)
 	err := easyjson.UnmarshalFromReader(ctx.Request.Body, m)
 	if err != nil {
-		return nil, fmt.Errorf("%s %w", err, NewValidationErrror(http.StatusNotFound, http.StatusBadRequest, "invalid json"))
+		return nil, fmt.Errorf("%s %w", err, NewValidationError(http.StatusNotFound, http.StatusBadRequest, "invalid json"))
 	}
 	if m.ID == "" {
-		return nil, fmt.Errorf("%w", NewValidationErrror(http.StatusNotFound, http.StatusBadRequest, "metric name is empty"))
+		return nil, fmt.Errorf("%w", NewValidationError(http.StatusNotFound, http.StatusBadRequest, "metric name is empty"))
 	}
 	if m.MType != GAUGE && m.MType != COUNTER {
-		return nil, fmt.Errorf("%w", NewValidationErrror(http.StatusNotFound, http.StatusBadRequest, "metric type is not gauge or counter"))
+		return nil, fmt.Errorf("%w", NewValidationError(http.StatusNotFound, http.StatusBadRequest, "metric type is not gauge or counter"))
 	}
 	return m, nil
 }
@@ -135,14 +136,14 @@ func ValidateBatchJSON(ctx *gin.Context) ([]*common.Metrics, error) {
 	batch := common.SliceMetrics(metrics)
 	err := easyjson.UnmarshalFromReader(ctx.Request.Body, &batch)
 	if err != nil {
-		return nil, fmt.Errorf("%s %w", err, NewValidationErrror(http.StatusNotFound, http.StatusBadRequest, "invalid json"))
+		return nil, fmt.Errorf("%s %w", err, NewValidationError(http.StatusNotFound, http.StatusBadRequest, "invalid json"))
 	}
 	for _, m := range batch {
 		if m.ID == "" {
-			return nil, fmt.Errorf("%w", NewValidationErrror(http.StatusNotFound, http.StatusBadRequest, "metric name is empty"))
+			return nil, fmt.Errorf("%w", NewValidationError(http.StatusNotFound, http.StatusBadRequest, "metric name is empty"))
 		}
 		if m.MType != GAUGE && m.MType != COUNTER {
-			return nil, fmt.Errorf("%w", NewValidationErrror(http.StatusNotFound, http.StatusBadRequest, "metric type is not gauge or counter"))
+			return nil, fmt.Errorf("%w", NewValidationError(http.StatusNotFound, http.StatusBadRequest, "metric type is not gauge or counter"))
 		}
 	}
 	return batch, nil
