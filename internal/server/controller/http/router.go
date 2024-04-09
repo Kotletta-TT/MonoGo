@@ -20,6 +20,7 @@ func NewServer(repo storage.Repository, cfg *config.Config) (*http.Server, error
 	engine := gin.New()
 	engine.RedirectTrailingSlash = false
 	engine.Use(RequestResponseLogging())
+	engine.Use(TrustedSubnetMiddleware(cfg))
 	engine.Use(CompressMiddleware())
 	engine.Use(HashSignMiddleWare(cfg))
 	engine.Use(gin.Recovery())
