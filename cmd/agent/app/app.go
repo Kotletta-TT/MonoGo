@@ -16,13 +16,16 @@ import (
 //
 // It takes a pointer to a Config struct as a parameter.
 // It does not return anything.
-func Run(ctx context.Context, cfg *config.Config) {
+func Run(ctx context.Context, cfg *config.Config) error {
 	repo := storage.New()
 	collector := collectors.NewCollector(repo)
 	collector.RegisterCollectorMetricFunc(collectors.RuntimeMetricsCollector)
 	collector.RegisterCollectorMetricFunc(collectors.CustomMetricsCollector)
 	collector.RegisterCollectorMetricFunc(collectors.SystemStatsCollector)
-	httpSender := sender.NewHTTPSender(repo, cfg)
+	sender, err := sender.NewSender(repo, cfg)
+	if err != nil {
+		return err
+	}
 	pollTic := time.NewTicker(time.Second * time.Duration(cfg.PollInterval))
 	reportTic := time.NewTicker(time.Second * time.Duration(cfg.ReportInterval))
 	log.Println("Start work")
@@ -31,9 +34,9 @@ func Run(ctx context.Context, cfg *config.Config) {
 		case <-pollTic.C:
 			go collector.Collect()
 		case <-reportTic.C:
-			go httpSender.Send(ctx)
+			go sender.Send(ctx)
 		case <-ctx.Done():
-			return
+			return nil
 		}
 	}
 }

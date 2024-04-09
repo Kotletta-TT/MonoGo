@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	RunServerAddr   string `env:"ADDRESS" json:"address"`
+	Transport       string `env:"TRANSPORT" json:"transport"`
 	LogLevel        string `env:"LOG_LEVEL" json:"log_level"`
 	LogPath         string `env:"LOG_PATH" json:"log_path"`
 	LogFile         bool   `env:"LOG_FILE" json:"log_file"`
@@ -33,6 +34,7 @@ func NewConfig() *Config {
 	config := Config{}
 	var configPath string
 	flag.StringVar(&config.RunServerAddr, "a", "localhost:8080", "Address:port server")
+	flag.StringVar(&config.Transport, "t", "http", "Transport")
 	flag.StringVar(&config.LogLevel, "l", "INFO", "Log level")
 	flag.StringVar(&config.LogPath, "p", "/var/log/monogo.log", "Log path")
 	flag.BoolVar(&config.LogFile, "log-file", false, "Log file")
