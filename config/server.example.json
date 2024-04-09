@@ -1,0 +1,10 @@
+{
+  "address": "localhost:8080",
+  "log_level": "INFO",
+  "restore": true,
+  "store_interval": "1s",
+  "store_file": "/path/to/file.db",
+  "database_dsn": "postgres://username:password@localhost:5432/database_name",
+  "hash_key": "secret_key_put_here",
+  "ssl": false
+}
